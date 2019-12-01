@@ -23,16 +23,13 @@ public:
      * @param[in] Np The prediction horizon.
      * @param[in] Nx The number of states of the plant.
      * @param[in] Nu The number of inputs of the plant.
-     * @param[in] Nr The number of reference signals (or output of the plant).
      * @param[in] Nc The number of polytopic constraints to enforce.
      * @param[in] Ns The number of slack variables.
      */
     MpcController(
         const std::unique_ptr<IQpSolver> qpSolver, 
-        const unsigned int Nt, const unsigned int Np, 
-        const unsigned int Nx, const unsigned int Nu, 
-        const unsigned int Nr, const unsigned int Nc, 
-        const unsigned int Ns = 0
+        const unsigned int Nt, const unsigned int Np, const unsigned int Nx, 
+        const unsigned int Nu, const unsigned int Nc, const unsigned int Ns = 0
     );
     
     /**
@@ -45,6 +42,87 @@ public:
      * @param[out] solution The solution of the problem.
      */
     bool update(Vector & solution);
+    
+    /**
+     * @brief Set the cost function in the problem formulation.
+     * @param[in] Q The cost matrix on the states.
+     * @param[in] R The cost matrix on the inputs.
+     * @param[in] T The cost matrix on the states and inputs.
+     * @param[in] fx The cost vector on the states.
+     * @param[in] fu The cost vector on the inputs.
+     */
+    inline void setCostFunction(
+        Matrix const & Q, Matrix const & R, Matrix const & T, 
+        Vector const & fx, Vector const & fu
+    ) {m_mpcProblem.setCostFunction(Q, R, T, fx, fu);};
+    
+    /**
+     * @brief Set the state initial condition.
+     * @param[in] xInit The initial state.
+     */
+    inline void setInitialCondition(Vector & xInit) {
+        m_mpcProblem.setInitialCondition(xInit);
+    };
+    
+        /**
+     * @brief Set the A and B matrices defining the plant.
+     * @param[in] A The A matrix of the discrete state-space.
+     * @param[in] B The B matrix of the discrete state-space.
+     * @param[in] Ts The sampling time of the model (-1 for continuous-time
+     * system).
+     */
+    inline void setPlantModel(Matrix const & A, Matrix const & B, float Ts) {
+        m_mpcProblem.setPlantModel(A, B, Ts);
+    };
+    
+//     /**
+//      * @brief Discretize the state-space.
+//      * @param[in] Ts The sampling time.
+//      */
+//     inline void discretizePlant(float Ts) {
+//         m_mpcProblem.discretizePlant(Ts);
+//     };
+    
+    /**
+     * @brief Set the matrices and vectors defining the polytopic constraints.
+     * @param[in] Ax The constraint matrix on the states.
+     * @param[in] Au The constraint matrix on the inputs.
+     * @param[in] As The constraint matrix on the slack variables.
+     * @param[in] b  The bound vector
+     */
+    inline void setConstraints(
+        Matrix const & Ax, Matrix const & Au, Vector const & b
+    ) {m_mpcProblem.setConstraints(Ax, Au, b);};
+    
+    /**
+     * @brief Set the vectors defining the actuator bounds.
+     * @param[in] lb The lower bound input constraints.
+     * @param[in] ub The upper bound input constraints.
+     */
+    void setActuatorBounds(Vector const & lb, Vector const & ub) {
+        m_mpcProblem.setActuatorBounds(lb, ub);
+    };
+    
+    /**
+     * @brief Modify the inequality constraints to add soft constraints.
+     * @param[in] slackIdx The index of the slack variable being set.
+     * @param[in] constIdx The index (or indices) of the constraints which have 
+     * to be soften.
+     * @param[in] weight The weight used to penalize the soft constraint in the 
+     * cost function.
+     */
+    inline void setSoftConstraints(
+        unsigned int const & slackIdx, 
+        std::vector<unsigned int> const & constIdx, const double & weight
+    ) {
+        m_mpcProblem.setSoftConstraints(slackIdx, constIdx, weight);
+    };
+    
+    /**
+     * @brief Reset the soft constraints from the MPC problem formulation. This 
+     * does not reduce the size of the problem.
+     */
+    inline void resetSoftConsraints() {m_mpcProblem.resetSoftConsraints();};
     
 private:
     /// Control horizon
@@ -59,9 +137,6 @@ private:
     /// Number of input
     const unsigned int m_Nu;
     
-    /// Number of reference signal
-    const unsigned int m_Nr;
-    
     /// Number of polytopic constraints
     const unsigned int m_Nc;
     
@@ -69,7 +144,7 @@ private:
     const unsigned int m_Ns;
     
     /// MPC problem formulation
-    MpcProblem m_mpcFormulation;
+    MpcProblem m_mpcProblem;
     
     /// QP solver used to solve the MPC problem
     std::unique_ptr<IQpSolver> m_qpSolverPtr;

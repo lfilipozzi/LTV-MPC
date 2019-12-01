@@ -8,6 +8,9 @@
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
+// // Redefine using row major
+// typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+//     MatrixRowMajor;
 
 
 
@@ -29,12 +32,81 @@ struct QpProblem {
      * constraints are the same to within a multiplicative constant.
      */
     bool operator==(const QpProblem & qp) const {
-        // TODO change overload of operator== so that the cost function and 
-        // polytopic constraints can differ by a multiplicative scalar so that 
-        // two problems are equals as long as they have the same solutions
-        return (H == qp.H && f == qp.f && 
-                A == qp.A && b == qp.b &&
+        // Check the size
+        if (
+            H.rows()  != qp.H.rows()  || H.cols()  != qp.H.cols()  ||
+            f.rows()  != qp.f.rows()  || f.cols()  != qp.f.cols()  ||
+            A.rows()  != qp.A.rows()  || A.cols()  != qp.A.cols()  ||
+            b.rows()  != qp.b.rows()  || b.cols()  != qp.b.cols()  ||
+            lb.rows() != qp.lb.rows() || lb.cols() != qp.lb.cols() ||
+            ub.rows() != qp.ub.rows() || ub.cols() != qp.ub.cols()
+            
+        ) {
+            return false;
+        }
+        
+        QpProblem thisQp = *this;
+        
+        // Find multiplicative constant in the cost function
+        double foo = 0;
+        // Find multiplicative constant between two non-zero entries in H
+        for (unsigned int k = 0; k < qp.H.size(); k++) {
+            if (H(k) != 0) {
+                foo = qp.H(k) / H(k);
+                thisQp.H = H / foo;
+                thisQp.f = f / foo;
+                break;
+            }
+        }
+        // Check in f is we haven't found a non-zero entry in H
+        if (foo == 0) {
+            for (unsigned int k = 0; k < qp.f.size(); k++) {
+                if (f(k) != 0) {
+                    foo = qp.f(k) / f(k);
+                    thisQp.H = H / foo;
+                    thisQp.f = f / foo;
+                    break;
+                }
+            }
+        }
+        if (foo == 0) {
+            thisQp.H = H;
+            thisQp.f = f;
+        }
+        
+        foo = 0;
+        // Find multiplicative constant between two non-zero entries in H
+        for (unsigned int k = 0; k < qp.A.size(); k++) {
+            if (A(k) != 0) {
+                foo = qp.A(k) / A(k);
+                thisQp.A = A / foo;
+                thisQp.b = b / foo;
+                break;
+            }
+        }
+        // Check in f is we haven't found a non-zero entry in H
+        if (foo == 0) {
+            for (unsigned int k = 0; k < qp.b.size(); k++) {
+                if (b(k) != 0) {
+                    foo = qp.b(k) / b(k);
+                    thisQp.A = A / foo;
+                    thisQp.b = b / foo;
+                    break;
+                }
+            }
+        }
+        if (foo == 0) {
+            thisQp.A = A;
+            thisQp.b = b;
+        }
+        
+        return (thisQp.H == qp.H && thisQp.f == qp.f && 
+                thisQp.A == qp.A && thisQp.b == qp.b &&
                 lb == qp.lb && ub == qp.ub);
+        
+//         return (H == qp.H && f == qp.f && 
+//                 A == qp.A && b == qp.b &&
+//                 lb == qp.lb && ub == qp.ub);
     }
     
     /**
@@ -95,13 +167,15 @@ struct QpProblem {
  */
 class IQpSolver {
 public:
+    virtual ~IQpSolver() {};
+    
     /**
      * @brief Solve the QP problem qpProblem and give the solution. If the 
      * problem is solved, return true.
      * @param[in] qpProblem The QP problem.
      * @param[out] solution Vector used to return the solution if solved.
      */
-    virtual bool solveProbem(
+    virtual bool solve(
         const QpProblem & qpProblem, Vector & solution
     ) = 0;
     
@@ -125,11 +199,11 @@ public:
      */
     QpOasesSolver(
         unsigned int NxQP, unsigned int NcQP, int nWSR = 10, 
-        double* cpuTime = nullptr
+        double * cpuTime = nullptr
     );
     ~QpOasesSolver();
     
-    virtual bool solveProbem(
+    virtual bool solve(
         const QpProblem & qpProblem, Vector & solution
     );
     

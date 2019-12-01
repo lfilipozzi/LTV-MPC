@@ -30,7 +30,7 @@ void testSolveQp() {
     problem.lb << 1, 2;
     problem.ub << 3, 4;
     expectedSolution << 1, 2;
-    status = solver.solveProbem(problem, solution);
+    status = solver.solve(problem, solution);
     
     assert(solution == expectedSolution && status);
     
@@ -42,7 +42,7 @@ void testSolveQp() {
     problem.b << 2;
     problem.lb << 1, 2;
     problem.ub << 3, 4;
-    status = solver.solveProbem(problem, solution);
+    status = solver.solve(problem, solution);
     assert(!status);
 }
 

@@ -10,16 +10,16 @@ file(MAKE_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})
 file(MAKE_DIRECTORY ${LIBRARY_OUTPUT_PATH})
 
 # Rename the source files that will create the library, to a proper name!
-set(ltvmpc_LIB_SRC
+set(libltvmpc_SRC
    mpcProblem.cpp
-#    mpcController.cpp
+   mpcController.cpp
    qpSolver.cpp
 )
 
 # Add any other header files
 set(ltvmpc_INCLUDES
     ../include/mpcProblem.h
-#     ../include/mpcController.h
+    ../include/mpcController.h
     ../include/qpSolver.h
 )
 
@@ -37,7 +37,7 @@ endif()
 add_definitions(-DGIT_BRANCH=${GIT_BRANCH})
 
 # Create the ltvmpc library
-add_library(ltvmpc_LIB STATIC ${ltvmpc_LIB_SRC})
+add_library(libltvmpc STATIC ${libltvmpc_SRC})
 
 # Add Eigen header files
 include_directories(${CMAKE_SOURCE_DIR}/lib/eigen/Eigen)
@@ -50,12 +50,12 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/lib/qpoases/include/qpOASES
     ${CMAKE_SOURCE_DIR}/lib/qpoases/include/qpOASES/extras
 )
-target_link_libraries(ltvmpc_LIB qpOASES)
+target_link_libraries(libltvmpc qpOASES)
 
 # Install library
-install(TARGETS ltvmpc_LIB DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(TARGETS libltvmpc DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 # Create the ltvmpc executable, add dependencies, and install
 add_executable(ltvmpc main.cpp)
-target_link_libraries(ltvmpc ltvmpc_LIB)
+target_link_libraries(ltvmpc libltvmpc)
 install(TARGETS ltvmpc DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

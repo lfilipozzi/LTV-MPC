@@ -9,18 +9,17 @@
 /**
  * @author Louis Filipozzi
  * 
- * @brief This class defines a Model Predictive Control problem used for 
- * reference tracking. Its mathematical formulation is given as
+ * @brief This class defines a Model Predictive Control. Its mathematical 
+ * formulation is given as
  * \f{eqnarray*}{
- *  \min\limits_{(\delta u_k)_{k\in [0,N-1]}} & 
- *      \sum\limits_{k=0}^{N_p-1} ||\delta y_k - \delta y_{ref}||_{Q_e}^2 + 
- *      \sum\limits_{k=0}^{N_t-1} ||\delta u_k||_{R_{\delta u}}^2\\
+ *  \min\limits_{(u_k)_{k\in [0,N-1]}} & 
+ *      \sum\limits_{k=0}^{N_p-1} x_k^T Q x_k + 
+ *      \sum\limits_{k=0}^{N_t-1} u_k^T T x_k + x_k^T T^T u_k + u_k^T R u_k\\
  *  s.t.
- *      & \delta x_0 = 0\\
- *      & \delta x_{k+1} = A \delta x_k +  B \delta u_k\\
- *      & \delta y_k = C \delta x_k + D \delta u_k\\
- *      & u_{min} \leq u_{-1} + \delta u_k \leq u_{max}\\
- *      & A_x (x_0 + \delta x_k) + A_u (u_{-1} + \delta u_k) \leq b
+ *      & x_0 = x_{init}\\
+ *      & x_{k+1} = A x_k +  B u_k\\
+ *      & u_{min} \leq u_k \leq u_{max}\\
+ *      & A_x x_k + A_u \delta u_k \leq b
  * \f}
  * where \f$ N_p, N_t \f$ are respectively the prediction and control horizons.
  */
@@ -28,21 +27,9 @@ class MpcProblem {
 public: 
     MpcProblem(
         const unsigned int Nt, const unsigned int Np, const unsigned int Nx, 
-        const unsigned int Nu, const unsigned int Nr, const unsigned int Nc, 
-        const unsigned int Ns
+        const unsigned int Nu, const unsigned int Nc, const unsigned int Ns
     );
     ~MpcProblem();
-    
-    /**
-     * @brief Set the A, B, C, and D matrices defining the plant.
-     * @param[in] A The A matrix of the discrete state-space.
-     * @param[in] B The B matrix of the discrete state-space.
-     * @param[in] C The C matrix of the discrete state-space.
-     * @param[in] D The D matrix of the discrete state-space.
-     */
-    void setPlantModel(
-        Matrix *const A, Matrix *const B, Matrix *const C, Matrix *const D
-    );
     
     /**
      * @brief Set the Q, R, T, fx, and fu matrices defining the cost function.
@@ -53,9 +40,30 @@ public:
      * @param[in] fu The cost vector on the inputs.
      */
     void setCostFunction(
-        Matrix *const Q, Matrix *const R, Matrix *const T, Vector *const fx, 
-        Vector *const fu
+        Matrix const & Q, Matrix const & R, Matrix const & T, 
+        Vector const & fx, Vector const & fu
     );
+    
+    /**
+     * @brief Set the state initial condition.
+     * @param[in] xInit The initial state.
+     */
+    void setInitialCondition(Vector & xInit) {m_stateInit = xInit;};
+    
+        /**
+     * @brief Set the A and B matrices defining the plant.
+     * @param[in] A The A matrix of the discrete state-space.
+     * @param[in] B The B matrix of the discrete state-space.
+     * @param[in] Ts The sampling time of the model (-1 for continuous-time
+     * system).
+     */
+    void setPlantModel(Matrix const & A, Matrix const & B, float Ts = -1.0);
+    
+//     /**
+//      * @brief Discretize the state-space.
+//      * @param[in] Ts The sampling time.
+//      */
+//     void discretizePlant(float Ts);
     
     /**
      * @brief Set the matrices and vectors defining the polytopic constraints.
@@ -65,7 +73,7 @@ public:
      * @param[in] b  The bound vector
      */
     void setConstraints(
-        Matrix *const Ax, Matrix *const Au, Matrix *const As, Vector *const b
+        Matrix const & Ax, Matrix const & Au, Vector const & b
     );
     
     /**
@@ -73,7 +81,26 @@ public:
      * @param[in] lb The lower bound input constraints.
      * @param[in] ub The upper bound input constraints.
      */
-    void setActuatorBounds(Vector *const lb, Vector *const ub);
+    void setActuatorBounds(Vector const & lb, Vector const & ub);
+    
+    /**
+     * @brief Modify the inequality constraints to add soft constraints.
+     * @param[in] slackIdx The index of the slack variable being set.
+     * @param[in] constIdx The index (or indices) of the constraints which have 
+     * to be soften.
+     * @param[in] weight The weight used to penalize the soft constraint in the 
+     * cost function.
+     */
+    void setSoftConstraints(
+        unsigned int const & slackIdx, 
+        std::vector<unsigned int> const & constIdx, const double & weight
+    );
+    
+    /**
+     * @brief Reset the soft constraints from the MPC problem formulation. This 
+     * does not reduce the size of the problem.
+     */
+    void resetSoftConsraints();
     
     /**
      * @brief Transform the MPC Problem into a standard QP problem by using the 
@@ -94,44 +121,44 @@ private:
     /// Number of input
     const unsigned int m_Nu;
     
-    /// Number of reference signal
-    const unsigned int m_Nr;
-    
     /// Number of polytopic constraints
     const unsigned int m_Nc;
     
     /// Number of slack variable
     const unsigned int m_Ns;
     
-    /// Representation of the plant using a state-space
-    struct Plant {
-        Matrix * A;
-        Matrix * B;
-        Matrix * C;
-        Matrix * D;
-    } m_plant;
-    
     /// The cost function
     struct CostFunction {
-        Matrix * Q;
-        Matrix * R;
-        Matrix * T;
-        Vector * fx;
-        Vector * fu;
+        Matrix Q;   // Quadratic cost on the states
+        Matrix R;   // Quadratic cost on the inputs
+        Matrix T;   // Quadratic cost on the states-inputs
+        Matrix S;   // Quadratic cost on the slack variables
+        Vector fx;  // Linear cost on the states
+        Vector fu;  // Linear cost on the inputs
     } m_costFunction;
+    
+    /// Initial condition
+    Vector m_stateInit;
+    
+    /// Representation of the plant using a state-space
+    struct Plant {
+        Matrix A;
+        Matrix B;
+        float Ts;
+    } m_plant;
     
     /// Polytopic constraints of the problem (aka constraints)
     struct Constraints {
-        Matrix * Ax;
-        Matrix * Au;
-        Matrix * As;
-        Vector * b;
+        Matrix Ax;
+        Matrix Au;
+        Matrix As;
+        Vector b;
     } m_constraints;
     
     /// Plant input constraints (aka bounds)
     struct Bounds {
-        Vector * lb;
-        Vector * ub;
+        Vector lb;
+        Vector ub;
     } m_bounds;
     
     /// QP formulation of the MPC problem

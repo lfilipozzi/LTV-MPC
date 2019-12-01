@@ -4,6 +4,9 @@ set (libltvmpc_VERSION_MAJOR 0)
 set (libltvmpc_VERSION_MINOR 1)
 include(CheckCXXCompilerFlag)
 
+# Use C++ 14
+set(CMAKE_CXX_STANDARD 14)
+
 # Option to build shared libraries
 option (BUILD_SHARED_LIBS "Build shared libraries." OFF)
 

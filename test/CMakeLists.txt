@@ -9,10 +9,14 @@ include_directories(
 )
 
 # Set up unit testing
-add_executable(testMpcProblem_EXE ../test/testMpcProblem.cpp)
-target_link_libraries(testMpcProblem_EXE ltvmpc_LIB)
-add_test(testMpcProblem testMpcProblem_EXE)
+add_executable(testQpOasesSolver ../test/testQpOasesSolver.cpp)
+target_link_libraries(testQpOasesSolver libltvmpc)
+add_test(testQpOasesSolver testQpOasesSolver)
 
-add_executable(testQpOasesSolver_EXE ../test/testQpOasesSolver.cpp)
-target_link_libraries(testQpOasesSolver_EXE ltvmpc_LIB)
-add_test(testQpOasesSolver testQpOasesSolver_EXE)
+add_executable(testMpcProblem ../test/testMpcProblem.cpp)
+target_link_libraries(testMpcProblem libltvmpc)
+add_test(testMpcProblem testMpcProblem)
+
+add_executable(testMpcController ../test/testMpcController.cpp)
+target_link_libraries(testMpcController libltvmpc)
+add_test(testMpcController testMpcController)

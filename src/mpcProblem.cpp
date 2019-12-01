@@ -1,5 +1,6 @@
 #include "../include/mpcProblem.h"
 #include <limits>
+#include <iostream>
 
 // Forbid Eigen automatic resizing with operator=
 #define EIGEN_NO_AUTOMATIC_RESIZING
@@ -13,10 +14,23 @@
 
 MpcProblem::MpcProblem(
     const unsigned int Nt, const unsigned int Np, const unsigned int Nx, 
-    const unsigned int Nu, const unsigned int Nr, const unsigned int Nc, 
-    const unsigned int Ns
+    const unsigned int Nu, const unsigned int Nc, const unsigned int Ns
 ) :
-    m_Nt(Nt), m_Np(Np), m_Nx(Nx), m_Nu(Nu), m_Nr(Nr), m_Nc(Nc), m_Ns(Ns) {
+    m_Nt(Nt), m_Np(Np), m_Nx(Nx), m_Nu(Nu), m_Nc(Nc), m_Ns(Ns) {
+    // Resize the matrices used to formulate the MPC 
+    m_costFunction.Q.resize(m_Nx, m_Nx);
+    m_costFunction.R.resize(m_Nu, m_Nu);
+    m_costFunction.T.resize(m_Nx, m_Nu);
+    m_costFunction.S.resize(m_Nc, m_Nc);
+    m_costFunction.fx.resize(m_Nx);
+    m_costFunction.fu.resize(m_Nu);
+    m_stateInit.resize(m_Nx);
+    m_plant.A.resize(m_Nx, m_Nx);
+    m_plant.B.resize(m_Nx, m_Nu);
+    m_constraints.Ax.resize(m_Nc, m_Nx);
+    m_constraints.Au.resize(m_Nc, m_Nu);
+    m_constraints.As.resize(m_Nc, m_Ns);
+    m_constraints.b.resize(m_Nc);
     // Resize the batch QP problem matrices
     m_qp.H.resize(m_Nu*m_Nt+m_Ns, m_Nu*m_Nt+m_Ns);
     m_qp.f.resize(m_Nu*m_Nt+m_Ns);
@@ -32,19 +46,29 @@ MpcProblem::~MpcProblem() {
 }
 
 
-void MpcProblem::setPlantModel(
-    Matrix * const A, Matrix * const B, Matrix * const C, Matrix * const D
-) {
+void MpcProblem::setPlantModel(Matrix const & A, Matrix const & B, float Ts) {
     m_plant.A = A;
     m_plant.B = B;
-    m_plant.C = C;
-    m_plant.D = D;
+    m_plant.Ts = Ts;
 }
 
 
+// void MpcProblem::discretizePlant(float Ts) {
+//     if (m_plant.Ts == -1.0) {
+//         Matrix Atmp;
+//         Atmp = m_plant.A*Ts;
+//         m_plant.A = (m_plant.A*Ts).exp(m_Nx, m_Nx).eval();
+//         m_plant.B *= m_plant.A;
+//         m_plant.Ts = Ts;
+//     }
+//     // TODO else
+// }
+
+
+
 void MpcProblem::setCostFunction(
-    Matrix * const Q, Matrix * const R, Matrix * const T, Vector * const fx, 
-    Vector * const fu
+    Matrix const & Q, Matrix const & R, Matrix const & T, 
+    Vector const & fx, Vector const & fu
 ) {
     m_costFunction.Q = Q;
     m_costFunction.R = R;
@@ -55,28 +79,53 @@ void MpcProblem::setCostFunction(
 
 
 void MpcProblem::setConstraints(
-    Matrix * const Ax, Matrix * const Au, Matrix * const As, Vector * const b
+    Matrix const & Ax, Matrix const & Au, Vector const & b
 ) {
+    // Update matrices
     m_constraints.Ax = Ax;
     m_constraints.Au = Au;
-    m_constraints.As = As;
     m_constraints.b  = b;
 }
 
 
-void MpcProblem::setActuatorBounds(Vector * const lb, Vector * const ub) {
+void MpcProblem::setActuatorBounds(Vector const & lb, Vector const & ub) {
     m_bounds.lb = lb;
     m_bounds.ub = ub;
 }
+
+
+void MpcProblem::setSoftConstraints(
+    unsigned int const & slackIdx, std::vector<unsigned int> const & constIdx, 
+    const double & weight
+) {
+    // Set the penalty associated to the slack variable
+    m_costFunction.S(slackIdx,slackIdx) = weight;
+    // Reset the column of the matrix As to zero and update the column
+    m_constraints.As.block(0, slackIdx, m_Nc, 1).Zero(m_Nc, 1);
+    for (auto it = constIdx.begin(); it != constIdx.end(); it++) {
+        m_constraints.As(*it, slackIdx) = -1.0;
+    }
+}
+
+
+void MpcProblem::resetSoftConsraints() {
+    // Set the penalty on the slack variables to zero
+    for (unsigned int k = 0; k < m_Ns; k++)
+        m_costFunction.S(k,k) = 0.0;
+    // Set the inequality matrix on slack variable to zero
+    m_constraints.As.Zero(m_Nc, m_Ns);
+}
+
 
 
 QpProblem MpcProblem::toQp() {
     /*
      * Compute batch matrices of the cost function
      */
-    Matrix Su, Qbar, Rbar, Tbar;
+    Matrix Sx, Su, Qbar, Rbar, Tbar;
     Vector fubar, fxbar;
     
+    Sx.resize(m_Nx*m_Np, m_Nx);
     Su.resize(m_Nx*m_Np, m_Nu*m_Nt);
     Qbar.resize(m_Nx*m_Np, m_Nx*m_Np);
     Rbar.resize(m_Nu*m_Nt, m_Nu*m_Nt);
@@ -84,11 +133,18 @@ QpProblem MpcProblem::toQp() {
     fxbar.resize(m_Nx*m_Np);
     fubar.resize(m_Nu*m_Nt);
     
-    Su.block(m_Nx, 0, m_Nx, m_Nu) = *(m_plant.B);
+    Sx.block(0, 0, m_Nx, m_Nx).setIdentity();
+    for (unsigned int i = 1; i < m_Np; i++) {
+        Sx.block(m_Nx*i, 0, m_Nx, m_Nx) = 
+        m_plant.A * Sx.block(m_Nx*(i-1), 0, m_Nx, m_Nx);
+    }
+    
+    Su.setZero();
+    Su.block(m_Nx, 0, m_Nx, m_Nu) = m_plant.B;
     // Fill the first column
     for(unsigned int i = 2; i < m_Np; i++) {
         Su.block(m_Nx*i, 0, m_Nx, m_Nu) = 
-            *(m_plant.A) * Su.block(m_Nx*(i-1), 0, m_Nx, m_Nu);
+            m_plant.A * Su.block(m_Nx*(i-1), 0, m_Nx, m_Nu);
     }
     // Copy first column to other column progressively
     for(unsigned int j = 1; j < m_Nt; j++) {
@@ -98,23 +154,23 @@ QpProblem MpcProblem::toQp() {
     
     // Write cost function for batch approach
     for(unsigned int k = 0; k < m_Np; k++) {
-        Qbar.block(m_Nx*k, m_Nx*k, m_Nx, m_Nx) = *(m_costFunction.Q);
+        Qbar.block(m_Nx*k, m_Nx*k, m_Nx, m_Nx) = m_costFunction.Q;
     }
     
     for(unsigned int k = 0; k < m_Nt; k++) {
-        Rbar.block(m_Nu*k, m_Nu*k, m_Nu, m_Nu) = *(m_costFunction.R);
+        Rbar.block(m_Nu*k, m_Nu*k, m_Nu, m_Nu) = m_costFunction.R;
     }
     
     for(unsigned int k = 0; k < m_Nt; k++) {
-        Tbar.block(m_Nx*k, m_Nu*k, m_Nx, m_Nu) = *(m_costFunction.T);
+        Tbar.block(m_Nx*k, m_Nu*k, m_Nx, m_Nu) = m_costFunction.T;
     }
     
     for(unsigned int i = 0; i < m_Np; i++) {
-        fxbar.segment(m_Nx*i, m_Nx) = *(m_costFunction.fx);
+        fxbar.segment(m_Nx*i, m_Nx) = m_costFunction.fx;
     }
     
     for(unsigned int i = 0; i < m_Nt; i++) {
-        fubar.segment(m_Nu*i, m_Nu) = *(m_costFunction.fu);
+        fubar.segment(m_Nu*i, m_Nu) = m_costFunction.fu;
     }
     
     Matrix tmp;
@@ -126,15 +182,16 @@ QpProblem MpcProblem::toQp() {
             tmp.transpose() + 
             Rbar
             );
-    m_qp.f.segment(0, m_Nu*m_Nt) = Su.transpose() * fxbar + fubar;
+    m_qp.f.segment(0, m_Nu*m_Nt) = Su.transpose() * fxbar + fubar + 
+        2 * (Qbar * Su + Tbar).transpose() * Sx * m_stateInit;
     
     
     /*
      * Compute batch vectors for decision variable constraints
      */
     for(unsigned int i = 0; i < m_Nt; i++) {
-        m_qp.lb.segment(m_Nu*i, m_Nu) = *(m_bounds.lb);
-        m_qp.ub.segment(m_Nu*i, m_Nu) = *(m_bounds.ub);
+        m_qp.lb.segment(m_Nu*i, m_Nu) = m_bounds.lb;
+        m_qp.ub.segment(m_Nu*i, m_Nu) = m_bounds.ub;
     }
     
     
@@ -144,37 +201,34 @@ QpProblem MpcProblem::toQp() {
     Matrix Axbar, Aubar;
     Axbar.resize(m_Nc*m_Np, m_Nx*m_Np);
     Aubar.resize(m_Nc*m_Np, m_Nu*m_Nt);
+    Axbar.setZero();
+    Aubar.setZero();
     for(unsigned int k = 0; k < m_Np; k++) {
-        Axbar.block(m_Nc*k, m_Nx*k, m_Nc, m_Nx) = *(m_constraints.Ax);
+        Axbar.block(m_Nc*k, m_Nx*k, m_Nc, m_Nx) = m_constraints.Ax;
     }
     
     for(unsigned int k = 0; k < m_Nt; k++) {
-        Aubar.block(m_Nc*k, m_Nu*k, m_Nc, m_Nu) = *(m_constraints.Au);
+        Aubar.block(m_Nc*k, m_Nu*k, m_Nc, m_Nu) = m_constraints.Au;
     }
-    
     m_qp.A.block(0, 0, m_Np*m_Nc, m_Nu*m_Nt) = Axbar * Su + Aubar;
     for(unsigned int i = 0; i < m_Np; i++) {
-        m_qp.b.segment(m_Nc*i, m_Nc) = *(m_constraints.b);
+        m_qp.b.segment(m_Nc*i, m_Nc) = m_constraints.b;
     }
+    m_qp.b -= Axbar * Sx * m_stateInit;
     
     
     /*
      * Modify the problem to add soft constraints
-     */
-    Matrix As;
-    As.resize(m_Nc, m_Ns);
-    // TODO As = ...
-    
-    m_qp.H.block(m_Nu*m_Nt, m_Nu*m_Nt, m_Ns, m_Ns) = 
-        Matrix::Identity(m_Ns, m_Ns); // TODO Add slack variable penalty
+     */    
+    m_qp.H.block(m_Nu*m_Nt, m_Nu*m_Nt, m_Ns, m_Ns) = m_costFunction.S;
     m_qp.f.segment(m_Nu*m_Nt, m_Ns) = Matrix::Zero(m_Ns, 1);
     for(unsigned int i = 0; i < m_Np; i++) {
-        m_qp.A.block(m_Nc*i, m_Nu*m_Nt, m_Nc, m_Ns) =  As;
+        m_qp.A.block(m_Nc*i, m_Nu*m_Nt, m_Nc, m_Ns) =  m_constraints.As;
     }
     m_qp.lb.segment(m_Nc*m_Np, m_Ns) = 
-        Matrix::Constant(m_Ns, 1, std::numeric_limits<float>::min());
+        Matrix::Constant(m_Ns, 1, 0);
     m_qp.ub.segment(m_Nc*m_Np, m_Ns) = 
-        Matrix::Constant(m_Ns, 1, std::numeric_limits<float>::max());
+        Matrix::Constant(m_Ns, 1, std::numeric_limits<double>::max());
     
     return m_qp;
 }

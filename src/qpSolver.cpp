@@ -33,13 +33,12 @@ QpOasesSolver::QpOasesSolver(
 }
 
 
-QpOasesSolver::~QpOasesSolver() {
-    
-}
+QpOasesSolver::~QpOasesSolver() {}
 
 
-bool QpOasesSolver::solveProbem(const QpProblem & qpProblem, 
-                                Vector & solution) {
+bool QpOasesSolver::solve(
+    const QpProblem & qpProblem, Vector & solution
+) {
     // Check QP size
     unsigned int NxQP;
     unsigned int NcQP;
@@ -49,13 +48,22 @@ bool QpOasesSolver::solveProbem(const QpProblem & qpProblem,
     
     solution.resize(m_NxQP);
     
-    // Create reference to the QP vectors and matrices
     const Matrix & H = qpProblem.H;
     const Vector & f = qpProblem.f;
     const Matrix & A = qpProblem.A;
     const Vector & b = qpProblem.b;
     const Vector & lb = qpProblem.lb;
     const Vector & ub = qpProblem.ub;
+    
+//     // Convert matrices to row major
+//     const MatrixRowMajor H = Eigen::Map<MatrixRowMajor> (
+//         qpProblem.H.data(), m_NxQP, m_NxQP
+//     );
+//     const Vector f = qpProblem.f;
+//     const Matrix A = qpProblem.A;
+//     const Vector b = qpProblem.b;
+//     const Vector lb = qpProblem.lb;
+//     const Vector ub = qpProblem.ub;
         
     if(m_coldStart) {
         // Initialize the problem
