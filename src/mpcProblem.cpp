@@ -228,7 +228,7 @@ QpProblem MpcProblem::toQp() {
     m_qp.lb.segment(m_Nc*m_Np, m_Ns) = 
         Matrix::Constant(m_Ns, 1, 0);
     m_qp.ub.segment(m_Nc*m_Np, m_Ns) = 
-        Matrix::Constant(m_Ns, 1, std::numeric_limits<double>::max());
+        Matrix::Constant(m_Ns, 1, std::numeric_limits<MatrixType>::max());
     
     return m_qp;
 }

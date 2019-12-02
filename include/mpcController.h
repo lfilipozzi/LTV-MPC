@@ -39,9 +39,22 @@ public:
     
     /**
      * @brief Solve the MPC problem and give the solution.
-     * @param[out] solution The solution of the problem.
+     * @return The status of the optimization.
      */
-    bool update(Vector & solution);
+    bool update();
+    
+    /**
+     * @brief Return the control output to apply according to the solution of 
+     * MPC problem.
+     * @param[out] control The control output.
+     * @return The status of the optimization.
+     */
+    bool output(Vector control);
+    
+    /**
+     * @brief Terminate the MPC controller.
+     */
+    void terminate();
     
     /**
      * @brief Set the cost function in the problem formulation.
@@ -149,6 +162,11 @@ private:
     /// QP solver used to solve the MPC problem
     std::unique_ptr<IQpSolver> m_qpSolverPtr;
     
+    /// The status of the optimization
+    bool m_status;
+    
+    /// Control sequence (solution of the MPC problem)
+    Vector m_controlSeq;
 };
 
 

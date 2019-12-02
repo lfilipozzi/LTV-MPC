@@ -29,7 +29,7 @@ QpOasesSolver::QpOasesSolver(
     m_cpuTimePtr(cpuTime) {
     m_lbA.resize(m_NcQP);
     m_lbA.segment(0, m_NcQP) = 
-        Matrix::Constant(m_NcQP, 1, std::numeric_limits<float>::min());
+        Matrix::Constant(m_NcQP, 1, -std::numeric_limits<MatrixType>::max());
 }
 
 

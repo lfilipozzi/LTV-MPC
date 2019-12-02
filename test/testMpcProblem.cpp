@@ -108,7 +108,7 @@ void testConversionToQp() {
          1,  128,    1,   64,    1,   32,    1,   16,    1,    8,   -1,
          1,  256,    1,  128,    1,   64,    1,   32,    1,   16,   -1;
     expectedQp.b << 997, 992, 978, 938, 822, 482, -522, -3502, -12378, -38878; 
-    double inf = std::numeric_limits<double>::max();
+    MatrixType inf = std::numeric_limits<MatrixType>::max();
     expectedQp.lb << -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, 0;
     expectedQp.ub << 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, inf;
     

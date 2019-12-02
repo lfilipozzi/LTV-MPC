@@ -6,9 +6,11 @@ include(CheckCXXCompilerFlag)
 
 # Use C++ 14
 set(CMAKE_CXX_STANDARD 14)
+# Add -fPIC compiler option
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Option to build shared libraries
-option (BUILD_SHARED_LIBS "Build shared libraries." OFF)
+option (BUILD_SHARED_LIBS "Build shared libraries." ON)
 
 # Detect compiler and act accordingly
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR 

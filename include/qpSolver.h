@@ -5,11 +5,11 @@
 #include <qpOASES.hpp>
 
 
-
-typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
-typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
+typedef double MatrixType;
+typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, Eigen::Dynamic> Matrix;
+typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, 1> Vector;
 // // Redefine using row major
-// typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+// typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
 //     MatrixRowMajor;
 
 
