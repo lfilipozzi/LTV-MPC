@@ -38,6 +38,8 @@ MpcProblem::MpcProblem(
     m_qp.b.resize(m_Np*m_Nc);
     m_qp.lb.resize(m_Nu*m_Nt+m_Ns);
     m_qp.ub.resize(m_Nu*m_Nt+m_Ns);
+    // Initialize matrices whose value is set by entry
+    m_constraints.As.Zero(m_Nc, m_Ns);
 }
 
 
@@ -98,12 +100,16 @@ void MpcProblem::setSoftConstraints(
     unsigned int const & slackIdx, std::vector<unsigned int> const & constIdx, 
     const double & weight
 ) {
+    if (!(slackIdx >= 0 && slackIdx < m_Ns && weight > 0))
+        return;
+    
     // Set the penalty associated to the slack variable
     m_costFunction.S(slackIdx,slackIdx) = weight;
     // Reset the column of the matrix As to zero and update the column
     m_constraints.As.block(0, slackIdx, m_Nc, 1).Zero(m_Nc, 1);
     for (auto it = constIdx.begin(); it != constIdx.end(); it++) {
-        m_constraints.As(*it, slackIdx) = -1.0;
+        if (*it >= 0 && *it < m_Nc)
+            m_constraints.As(*it, slackIdx) = -1.0;
     }
 }
 

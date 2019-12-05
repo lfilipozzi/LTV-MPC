@@ -1,10 +1,48 @@
 #include <qpOASES.hpp>
 #include <ctime>
 #include <iostream>
+#include <memory>
 #include "../include/mpcProblem.h"
+#include "../include/mpcController.h"
 
 /** Example for qpOASES main function using the QProblem class. */
 int main() {
+    Matrix test;
+    test.resize(3,3);
+    test << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+    // Column major
+    for (unsigned int i = 0; i < 9; i++) {
+        std::cout << *(test.data() + i);
+    }
+    std::cout << std::endl << std::endl;
+    // Row major? Yes when defining new variable.
+    Matrix testT;
+    testT.resize(3,3);
+    testT = test.transpose();
+    for (unsigned int i = 0; i < 9; i++) {
+        std::cout << *(testT.data() + i);
+    }
+    std::cout << std::endl << std::endl;
+    
+    unsigned int Np = 1;
+    unsigned int Nt = 1;
+    unsigned int Nx = 1;
+    unsigned int Nu = 1;
+    unsigned int Nc = 1;
+    unsigned int Ns = 1;
+    std::unique_ptr<IQpSolver> solver;
+    solver = std::make_unique<QpOasesSolver>(Nu*Np, Nc);
+    MpcController * controller = new MpcController(std::move(solver), Nt, Np, Nx, Nu, Nc, Ns);
+    
+    unsigned int slackIdx;
+    std::vector<unsigned int> constraintsIdx;
+    double weight;
+    controller->setSoftConstraints(slackIdx, constraintsIdx, weight);
+    std::cout << "OK" << std::endl;
+    
+    delete(controller);
+    
+    
 //     // Test block construction
 //     typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 //     typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;

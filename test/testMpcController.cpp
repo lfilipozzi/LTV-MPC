@@ -25,7 +25,7 @@ void testMpcController() {
     Ns = 0;
     
     // Create QP solver
-    std::unique_ptr<QpOasesSolver> solver;
+    std::unique_ptr<IQpSolver> solver;
     solver = std::make_unique<QpOasesSolver>(Nu*Np, Nc);
     
     // Create MPC controller 

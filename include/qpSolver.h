@@ -8,9 +8,6 @@
 typedef double MatrixType;
 typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, 1> Vector;
-// // Redefine using row major
-// typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-//     MatrixRowMajor;
 
 
 

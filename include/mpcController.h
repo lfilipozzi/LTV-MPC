@@ -49,7 +49,7 @@ public:
      * @param[out] control The control output.
      * @return The status of the optimization.
      */
-    bool output(Vector control);
+    bool output(MatrixType * control[]);
     
     /**
      * @brief Terminate the MPC controller.
@@ -160,7 +160,7 @@ private:
     MpcProblem m_mpcProblem;
     
     /// QP solver used to solve the MPC problem
-    std::unique_ptr<IQpSolver> m_qpSolverPtr;
+    std::unique_ptr<IQpSolver> p_qpSolver;
     
     /// The status of the optimization
     bool m_status;
