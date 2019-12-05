@@ -63,11 +63,13 @@ void testConversionToQp() {
     lb << -10, -10;
     ub <<  10,  10;
     
-    mpcProblem.setCostFunction(Q, R, T, fx, fu);
-    mpcProblem.setPlantModel(A, B, Ts);
-    mpcProblem.setInitialCondition(x0);
-    mpcProblem.setConstraints(Ax, Au, b);
-    mpcProblem.setActuatorBounds(lb, ub);
+    mpcProblem.setCostFunction(
+        Q.data(), R.data(), T.data(), fx.data(), fu.data()
+    );
+    mpcProblem.setPlantModel(A.data(), B.data(), Ts);
+    mpcProblem.setInitialCondition(x0.data());
+    mpcProblem.setConstraints(Ax.data(), Au.data(), b.data());
+    mpcProblem.setActuatorBounds(lb.data(), ub.data());
     mpcProblem.setSoftConstraints(0, {0}, 10000);
     
     // Convert MPC problem to QP problem

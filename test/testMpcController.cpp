@@ -33,10 +33,12 @@ void testMpcController() {
     controller.initialize();
     
     // Set MPC formulation
-    controller.setCostFunction(Q, R, T, fx, fu);
-    controller.setInitialCondition(x0);
-    controller.setPlantModel(A, B, Ts);
-    controller.setActuatorBounds(ulb, uub);
+    controller.setCostFunction(
+        Q.data(), R.data(), T.data(), fx.data(), fu.data()
+    );
+    controller.setInitialCondition(x0.data());
+    controller.setPlantModel(A.data(), B.data(), Ts);
+    controller.setActuatorBounds(ulb.data(), uub.data());
     
 }
 

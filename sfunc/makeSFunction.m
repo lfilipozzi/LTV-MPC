@@ -4,7 +4,7 @@ clear; clc;
 %% Add header files
 % Add path to Eigen header files
 eigen_path = fullfile('..','lib','eigen','Eigen');
-ipath_ekigen = ['-I' eigen_path];
+ipath_eigen = ['-I' eigen_path];
 
 % Add path to QpOses header files
 qpoases_path = fullfile('..','lib','qpoases','include');

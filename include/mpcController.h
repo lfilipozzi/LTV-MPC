@@ -10,6 +10,7 @@
 /**
  * @author Louis Filipozzi
  * @brief Solve and Mode Predictive Control problem using the batch approach.
+ * @details Matrices and vector are passed as tables using column-major storage.
  */
 class MpcController {
 public:
@@ -65,15 +66,15 @@ public:
      * @param[in] fu The cost vector on the inputs.
      */
     inline void setCostFunction(
-        Matrix const & Q, Matrix const & R, Matrix const & T, 
-        Vector const & fx, Vector const & fu
+        MatrixType * Q, MatrixType * R, MatrixType * T, 
+        MatrixType * fx, MatrixType * fu
     ) {m_mpcProblem.setCostFunction(Q, R, T, fx, fu);};
     
     /**
      * @brief Set the state initial condition.
      * @param[in] xInit The initial state.
      */
-    inline void setInitialCondition(Vector & xInit) {
+    inline void setInitialCondition(MatrixType * xInit) {
         m_mpcProblem.setInitialCondition(xInit);
     };
     
@@ -84,7 +85,7 @@ public:
      * @param[in] Ts The sampling time of the model (-1 for continuous-time
      * system).
      */
-    inline void setPlantModel(Matrix const & A, Matrix const & B, float Ts) {
+    inline void setPlantModel(MatrixType * A, MatrixType * B, float Ts) {
         m_mpcProblem.setPlantModel(A, B, Ts);
     };
     
@@ -104,7 +105,7 @@ public:
      * @param[in] b  The bound vector
      */
     inline void setConstraints(
-        Matrix const & Ax, Matrix const & Au, Vector const & b
+        MatrixType * Ax, MatrixType * Au, MatrixType * b
     ) {m_mpcProblem.setConstraints(Ax, Au, b);};
     
     /**
@@ -112,7 +113,7 @@ public:
      * @param[in] lb The lower bound input constraints.
      * @param[in] ub The upper bound input constraints.
      */
-    void setActuatorBounds(Vector const & lb, Vector const & ub) {
+    void setActuatorBounds(MatrixType * lb, MatrixType * ub) {
         m_mpcProblem.setActuatorBounds(lb, ub);
     };
     
