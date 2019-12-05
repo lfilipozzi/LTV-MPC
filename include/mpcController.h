@@ -66,15 +66,15 @@ public:
      * @param[in] fu The cost vector on the inputs.
      */
     inline void setCostFunction(
-        MatrixType * Q, MatrixType * R, MatrixType * T, 
-        MatrixType * fx, MatrixType * fu
+        const MatrixType * Q, const MatrixType * R, const MatrixType * T, 
+        const MatrixType * fx, const MatrixType * fu
     ) {m_mpcProblem.setCostFunction(Q, R, T, fx, fu);};
     
     /**
      * @brief Set the state initial condition.
      * @param[in] xInit The initial state.
      */
-    inline void setInitialCondition(MatrixType * xInit) {
+    inline void setInitialCondition(const MatrixType * xInit) {
         m_mpcProblem.setInitialCondition(xInit);
     };
     
@@ -85,7 +85,9 @@ public:
      * @param[in] Ts The sampling time of the model (-1 for continuous-time
      * system).
      */
-    inline void setPlantModel(MatrixType * A, MatrixType * B, float Ts) {
+    inline void setPlantModel(
+        const MatrixType * A, const MatrixType * B, float Ts
+    ) {
         m_mpcProblem.setPlantModel(A, B, Ts);
     };
     
@@ -105,7 +107,7 @@ public:
      * @param[in] b  The bound vector
      */
     inline void setConstraints(
-        MatrixType * Ax, MatrixType * Au, MatrixType * b
+        const MatrixType * Ax, const MatrixType * Au, const MatrixType * b
     ) {m_mpcProblem.setConstraints(Ax, Au, b);};
     
     /**
@@ -113,7 +115,7 @@ public:
      * @param[in] lb The lower bound input constraints.
      * @param[in] ub The upper bound input constraints.
      */
-    void setActuatorBounds(MatrixType * lb, MatrixType * ub) {
+    void setActuatorBounds(const MatrixType * lb, const MatrixType * ub) {
         m_mpcProblem.setActuatorBounds(lb, ub);
     };
     

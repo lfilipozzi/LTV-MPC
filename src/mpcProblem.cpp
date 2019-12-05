@@ -48,9 +48,11 @@ MpcProblem::~MpcProblem() {
 }
 
 
-void MpcProblem::setPlantModel(MatrixType * A, MatrixType * B, float Ts) {
-    m_plant.A = Eigen::Map<Matrix>(A, m_Nx, m_Nx);
-    m_plant.B = Eigen::Map<Matrix>(B, m_Nx, m_Nu);
+void MpcProblem::setPlantModel(
+    const MatrixType * A, const MatrixType * B, float Ts
+) {
+    m_plant.A = Eigen::Map<const Matrix>(A, m_Nx, m_Nx);
+    m_plant.B = Eigen::Map<const Matrix>(B, m_Nx, m_Nu);
     m_plant.Ts = Ts;
 }
 
@@ -69,30 +71,32 @@ void MpcProblem::setPlantModel(MatrixType * A, MatrixType * B, float Ts) {
 
 
 void MpcProblem::setCostFunction(
-    MatrixType * Q, MatrixType * R, MatrixType * T, 
-    MatrixType * fx, MatrixType * fu
+    const MatrixType * Q, const MatrixType * R, const MatrixType * T, 
+    const MatrixType * fx, const MatrixType * fu
 ) {
-    m_costFunction.Q = Eigen::Map<Matrix>(Q, m_Nx, m_Nx);
-    m_costFunction.R = Eigen::Map<Matrix>(R, m_Nu, m_Nu);
-    m_costFunction.T = Eigen::Map<Matrix>(T, m_Nx, m_Nu);
-    m_costFunction.fx = Eigen::Map<Vector>(fx, m_Nx);
-    m_costFunction.fu = Eigen::Map<Vector>(fu, m_Nu);
+    m_costFunction.Q = Eigen::Map<const Matrix>(Q, m_Nx, m_Nx);
+    m_costFunction.R = Eigen::Map<const Matrix>(R, m_Nu, m_Nu);
+    m_costFunction.T = Eigen::Map<const Matrix>(T, m_Nx, m_Nu);
+    m_costFunction.fx = Eigen::Map<const Vector>(fx, m_Nx);
+    m_costFunction.fu = Eigen::Map<const Vector>(fu, m_Nu);
 }
 
 
 void MpcProblem::setConstraints(
-    MatrixType * Ax, MatrixType * Au, MatrixType * b
+    const MatrixType * Ax, const MatrixType * Au, const MatrixType * b
 ) {
     // Update matrices
-    m_constraints.Ax = Eigen::Map<Matrix>(Ax, m_Nc, m_Nx);
-    m_constraints.Au = Eigen::Map<Matrix>(Au, m_Nc, m_Nu);
-    m_constraints.b  = Eigen::Map<Vector>(b, m_Nc);
+    m_constraints.Ax = Eigen::Map<const Matrix>(Ax, m_Nc, m_Nx);
+    m_constraints.Au = Eigen::Map<const Matrix>(Au, m_Nc, m_Nu);
+    m_constraints.b  = Eigen::Map<const Vector>(b, m_Nc);
 }
 
 
-void MpcProblem::setActuatorBounds(MatrixType * lb, MatrixType * ub) {
-    m_bounds.lb = Eigen::Map<Vector>(lb, m_Nu);
-    m_bounds.ub = Eigen::Map<Vector>(ub, m_Nu);
+void MpcProblem::setActuatorBounds(
+    const MatrixType * lb, const MatrixType * ub
+) {
+    m_bounds.lb = Eigen::Map<const Vector>(lb, m_Nu);
+    m_bounds.ub = Eigen::Map<const Vector>(ub, m_Nu);
 }
 
 

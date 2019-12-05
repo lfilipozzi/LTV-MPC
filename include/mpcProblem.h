@@ -40,16 +40,16 @@ public:
      * @param[in] fu The cost vector on the inputs.
      */
     void setCostFunction(
-        MatrixType * Q, MatrixType * R, MatrixType * T, 
-        MatrixType * fx, MatrixType * fu
+        const MatrixType * Q, const MatrixType * R, const MatrixType * T, 
+        const MatrixType * fx, const MatrixType * fu
     );
     
     /**
      * @brief Set the state initial condition.
      * @param[in] xInit The initial state.
      */
-    void setInitialCondition(MatrixType * xInit) {
-        m_stateInit = Eigen::Map<Vector>(xInit, m_Nx);
+    void setInitialCondition(const MatrixType * xInit) {
+        m_stateInit = Eigen::Map<const Vector>(xInit, m_Nx);
     };
     
         /**
@@ -59,7 +59,7 @@ public:
      * @param[in] Ts The sampling time of the model (-1 for continuous-time
      * system).
      */
-    void setPlantModel(MatrixType * A, MatrixType * B, float Ts = -1.0);
+    void setPlantModel(const MatrixType * A, const MatrixType * B, float Ts = -1.0);
     
 //     /**
 //      * @brief Discretize the state-space.
@@ -74,14 +74,16 @@ public:
      * @param[in] As The constraint matrix on the slack variables.
      * @param[in] b  The bound vector
      */
-    void setConstraints(MatrixType * Ax, MatrixType * Au, MatrixType * b);
+    void setConstraints(
+        const MatrixType * Ax, const MatrixType * Au, const MatrixType * b
+    );
     
     /**
      * @brief Set the vectors defining the actuator bounds.
      * @param[in] lb The lower bound input constraints.
      * @param[in] ub The upper bound input constraints.
      */
-    void setActuatorBounds(MatrixType * lb, MatrixType * ub);
+    void setActuatorBounds(const MatrixType * lb, const MatrixType * ub);
     
     /**
      * @brief Modify the inequality constraints to add soft constraints.
