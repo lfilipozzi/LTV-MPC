@@ -21,7 +21,7 @@ MpcProblem::MpcProblem(
     m_costFunction.Q.resize(m_Nx, m_Nx);
     m_costFunction.R.resize(m_Nu, m_Nu);
     m_costFunction.T.resize(m_Nx, m_Nu);
-    m_costFunction.S.resize(m_Nc, m_Nc);
+    m_costFunction.S.resize(m_Ns, m_Ns);
     m_costFunction.fx.resize(m_Nx);
     m_costFunction.fu.resize(m_Nu);
     m_stateInit.resize(m_Nx);
@@ -100,7 +100,7 @@ void MpcProblem::setSoftConstraints(
     unsigned int const & slackIdx, std::vector<unsigned int> const & constIdx, 
     const double & weight
 ) {
-    if (!(slackIdx >= 0 && slackIdx < m_Ns && weight > 0))
+    if (!(slackIdx >= 0 && slackIdx < m_Ns && weight > 0 && !constIdx.empty()))
         return;
     
     // Set the penalty associated to the slack variable
