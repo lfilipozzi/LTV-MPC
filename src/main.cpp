@@ -7,40 +7,117 @@
 
 /** Example for qpOASES main function using the QProblem class. */
 int main() {
-    Matrix test;
-    test.resize(3,3);
-    test << 1, 2, 3, 4, 5, 6, 7, 8, 9;
-    // Column major
-    for (unsigned int i = 0; i < 9; i++) {
-        std::cout << *(test.data() + i);
-    }
-    std::cout << std::endl << std::endl;
-    // Row major? Yes when defining new variable.
-    Matrix testT;
-    testT.resize(3,3);
-    testT = test.transpose();
-    for (unsigned int i = 0; i < 9; i++) {
-        std::cout << *(testT.data() + i);
-    }
-    std::cout << std::endl << std::endl;
-    
-    unsigned int Np = 1;
-    unsigned int Nt = 1;
-    unsigned int Nx = 1;
-    unsigned int Nu = 1;
+    // Define the MPC Problem
+    unsigned int Np = 10;
+    unsigned int Nt = 5;
+    unsigned int Nx = 3;
+    unsigned int Nu = 2;
     unsigned int Nc = 1;
     unsigned int Ns = 1;
-    std::unique_ptr<IQpSolver> solver;
-    solver = std::make_unique<QpOasesSolver>(Nu*Np, Nc);
-    MpcController * controller = new MpcController(std::move(solver), Nt, Np, Nx, Nu, Nc, Ns);
     
-    unsigned int slackIdx;
-    std::vector<unsigned int> constraintsIdx;
-    double weight;
-    controller->setSoftConstraints(slackIdx, constraintsIdx, weight);
-    std::cout << "OK" << std::endl;
+    float Ts = 0.1;
     
-    delete(controller);
+    MpcProblem mpcProblem(Nt, Np, Nx, Nu, Nc, Ns);
+    
+    Matrix Q, R, T;
+    Vector fx, fu;
+    
+    Matrix A, B;
+    Vector x0;
+    
+    Matrix Ax, Au;
+    Vector b;
+    
+    Vector lb, ub;
+    
+    Q.resize(Nx,Nx);
+    R.resize(Nu,Nu);
+    T.resize(Nx,Nu);
+    fx.resize(Nx);
+    fu.resize(Nu);
+    
+    A.resize(Nx,Nx);
+    B.resize(Nx,Nu);
+    x0.resize(Nx);
+    
+    Ax.resize(Nc,Nx);
+    Au.resize(Nc,Nu);
+    b.resize(Nc);
+    
+    lb.resize(Nu);
+    ub.resize(Nu);
+    
+    Q << 1, 0, 0, 0, 1, 0, 0, 0, 1;
+    R << 1, 0, 0, 1;
+    T << 1, 0, 0, 1, 0, 0;
+    fx << 1, 1, 1;
+    fu << 1, 1;
+    
+    A << 1, 0, 0, 0, 2, 0, 0, 0, 3;
+    B << 1, 0, 0, 1, 0, 0;
+    x0 << 0, 1, 2;
+    
+    Ax << 1, 1, 1;
+    Au << 1, 1;
+    b << 1000;
+    
+    lb << -10, -10;
+    ub <<  10,  10;
+    
+    mpcProblem.setCostFunction(
+        Q.data(), R.data(), T.data(), fx.data(), fu.data()
+    );
+    mpcProblem.setPlantModel(A.data(), B.data(), Ts);
+    mpcProblem.setInitialCondition(x0.data());
+    mpcProblem.setConstraints(Ax.data(), Au.data(), b.data());
+    mpcProblem.setActuatorBounds(lb.data(), ub.data());
+    mpcProblem.setSoftConstraints(0, {0}, 10000);
+    
+    // Convert MPC problem to QP problem
+    QpProblem qp = mpcProblem.toQp();
+    
+    std::cout << "H:"  << std::endl << qp.H << std::endl << std::endl;
+    std::cout << "f:"  << std::endl << qp.f << std::endl << std::endl;
+    std::cout << "A:"  << std::endl << qp.A << std::endl << std::endl;
+    std::cout << "b:"  << std::endl << qp.b << std::endl << std::endl;
+    std::cout << "lb:" << std::endl << qp.lb << std::endl << std::endl;
+    std::cout << "ub:" << std::endl << qp.ub << std::endl << std::endl;
+    
+    
+//     Matrix test;
+//     test.resize(3,3);
+//     test << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+//     // Column major
+//     for (unsigned int i = 0; i < 9; i++) {
+//         std::cout << *(test.data() + i);
+//     }
+//     std::cout << std::endl << std::endl;
+//     // Row major? Yes when defining new variable.
+//     Matrix testT;
+//     testT.resize(3,3);
+//     testT = test.transpose();
+//     for (unsigned int i = 0; i < 9; i++) {
+//         std::cout << *(testT.data() + i);
+//     }
+//     std::cout << std::endl << std::endl;
+//     
+//     unsigned int Np = 1;
+//     unsigned int Nt = 1;
+//     unsigned int Nx = 1;
+//     unsigned int Nu = 1;
+//     unsigned int Nc = 1;
+//     unsigned int Ns = 1;
+//     std::unique_ptr<IQpSolver> solver;
+//     solver = std::make_unique<QpOasesSolver>(Nu*Np, Nc);
+//     MpcController * controller = new MpcController(std::move(solver), Nt, Np, Nx, Nu, Nc, Ns);
+//     
+//     unsigned int slackIdx;
+//     std::vector<unsigned int> constraintsIdx;
+//     double weight;
+//     controller->setSoftConstraints(slackIdx, constraintsIdx, weight);
+//     std::cout << "OK" << std::endl;
+//     
+//     delete(controller);
     
     
 //     // Test block construction

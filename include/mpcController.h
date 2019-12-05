@@ -86,7 +86,7 @@ public:
      * system).
      */
     inline void setPlantModel(
-        const MatrixType * A, const MatrixType * B, float Ts
+        const MatrixType * A, const MatrixType * B, float Ts = -1.0f
     ) {
         m_mpcProblem.setPlantModel(A, B, Ts);
     };

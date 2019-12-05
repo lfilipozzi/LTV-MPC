@@ -2,10 +2,10 @@
 #include <memory>
 #include <vector>
 
-#define MATLAB_MEX_FILE // TODO remove this before using mex
-#include "matrix.h"
-#include "mex.h"
-#include <tmwtypes.h>
+// #define MATLAB_MEX_FILE // TODO remove this before using mex
+// #include "matrix.h"
+// #include "mex.h"
+// #include <tmwtypes.h>
 
 #define S_FUNCTION_LEVEL 2
 #define S_FUNCTION_NAME ltvmpc_sfunc
@@ -512,17 +512,28 @@ static void mdlUpdate(SimStruct *S, int_T /*tid*/)
     const real_T * b   = (real_T *) ssGetInputPortRealSignal(S, IN_BINEQ_IDX);
     
     // Get output signal pointer
-    real_T *y = (real_T *) ssGetOutputPortRealSignal(S, 0);
+    real_T * y = (real_T *) ssGetOutputPortRealSignal(S, 0);
     
     // Get MPC controller from P states
     MpcController * controller = (MpcController *) ssGetPWork(S)[0];
     
     // Set LTV-MPC formulation
-//     controller->setCostFunction(Q, R, T, fx, fu);
-//     controller->setInitialCondition(x0);
+    controller->setCostFunction(Q, R, T, fx, fu);
+    controller->setInitialCondition(x0);
+    controller->setPlantModel(A, B);
+    controller->setActuatorBounds(ulb, uub);
+    controller->setConstraints(Ax, Au, b);
+    
+    // Discretize the plant 
+    
+    // Solve the MPC problem
+    controller->update();
     
     // Set output
+//     real_T * solution;
+//     controller->output(&solution);
 //     y[0] = c->output();
+    controller->output(&y);
     
     
 }

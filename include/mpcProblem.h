@@ -59,7 +59,7 @@ public:
      * @param[in] Ts The sampling time of the model (-1 for continuous-time
      * system).
      */
-    void setPlantModel(const MatrixType * A, const MatrixType * B, float Ts = -1.0);
+    void setPlantModel(const MatrixType * A, const MatrixType * B, float Ts);
     
 //     /**
 //      * @brief Discretize the state-space.

@@ -32,12 +32,13 @@ MpcProblem::MpcProblem(
     m_constraints.As.resize(m_Nc, m_Ns);
     m_constraints.b.resize(m_Nc);
     // Resize the batch QP problem matrices
-    m_qp.H.resize(m_Nu*m_Nt+m_Ns, m_Nu*m_Nt+m_Ns);
-    m_qp.f.resize(m_Nu*m_Nt+m_Ns);
-    m_qp.A.resize(m_Np*m_Nc, m_Nu*m_Nt+m_Ns);
-    m_qp.b.resize(m_Np*m_Nc);
-    m_qp.lb.resize(m_Nu*m_Nt+m_Ns);
-    m_qp.ub.resize(m_Nu*m_Nt+m_Ns);
+//     m_qp.H.resize(m_Nu*m_Nt+m_Ns, m_Nu*m_Nt+m_Ns);
+//     m_qp.f.resize(m_Nu*m_Nt+m_Ns);
+//     m_qp.A.resize(m_Np*m_Nc, m_Nu*m_Nt+m_Ns);
+//     m_qp.b.resize(m_Np*m_Nc);
+//     m_qp.lb.resize(m_Nu*m_Nt+m_Ns);
+//     m_qp.ub.resize(m_Nu*m_Nt+m_Ns);
+    m_qp.resize(m_Nu*m_Nt+m_Ns, m_Np*m_Nc);
     // Initialize matrices whose value is set by entry
     m_constraints.As.Zero(m_Nc, m_Ns);
 }
@@ -150,7 +151,8 @@ QpProblem MpcProblem::toQp() {
     }
     
     Su.setZero();
-    Su.block(m_Nx, 0, m_Nx, m_Nu) = m_plant.B;
+    if (m_Np > 1)
+        Su.block(m_Nx, 0, m_Nx, m_Nu) = m_plant.B;
     // Fill the first column
     for(unsigned int i = 2; i < m_Np; i++) {
         Su.block(m_Nx*i, 0, m_Nx, m_Nu) = 
@@ -235,9 +237,9 @@ QpProblem MpcProblem::toQp() {
     for(unsigned int i = 0; i < m_Np; i++) {
         m_qp.A.block(m_Nc*i, m_Nu*m_Nt, m_Nc, m_Ns) =  m_constraints.As;
     }
-    m_qp.lb.segment(m_Nc*m_Np, m_Ns) = 
+    m_qp.lb.segment(m_Nu*m_Nt, m_Ns) = 
         Matrix::Constant(m_Ns, 1, 0);
-    m_qp.ub.segment(m_Nc*m_Np, m_Ns) = 
+    m_qp.ub.segment(m_Nu*m_Nt, m_Ns) = 
         Matrix::Constant(m_Ns, 1, std::numeric_limits<MatrixType>::max());
     
     return m_qp;
