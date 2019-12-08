@@ -26,10 +26,14 @@ QpOasesSolver::QpOasesSolver(
     m_NxQP(NxQP),
     m_NcQP(NcQP),
     m_nWSR(nWSR), 
-    m_cpuTimePtr(cpuTime) {
+    p_cpuTime(cpuTime) {
     m_lbA.resize(m_NcQP);
     m_lbA.segment(0, m_NcQP) = 
         Matrix::Constant(m_NcQP, 1, -std::numeric_limits<MatrixType>::max());
+//     qpOASES::Options options;
+//     options.setToMPC();
+//     options.printLevel = qpOASES::PL_NONE;
+//     m_qpOasesProblem.setOptions(options);
 }
 
 
@@ -64,36 +68,42 @@ bool QpOasesSolver::solve(
         qpProblem.A.data(), NcQP, NxQP
     );
     
+    // Set maximum of working set recalculation
+    qpOASES::int_t nWSR = m_nWSR;
+    
     if(m_coldStart) {
         // Initialize the problem
         m_qpOasesProblem = qpOASES::SQProblem(m_NxQP, m_NcQP);
         
         // Solve the problem
-        m_qpOasesProblem.init(H.data(),
-                              f.data(),
-                              A.data(),
-                              lb.data(),
-                              ub.data(),
-                              m_lbA.data(),
-                              b.data(), 
-                              m_nWSR,
-                              m_cpuTimePtr
-                             );
+        m_qpOasesProblem.init(
+            H.data(),
+            f.data(),
+            A.data(),
+            lb.data(),
+            ub.data(),
+            m_lbA.data(),
+            b.data(), 
+            nWSR,
+            p_cpuTime
+        );
         
-        m_coldStart = !m_coldStart;
+        if (m_qpOasesProblem.isInitialised())
+            m_coldStart = !m_coldStart;
     }
     else {
         // Solve the problem
-        m_qpOasesProblem.hotstart(H.data(),
-                                  f.data(),
-                                  A.data(),
-                                  lb.data(),
-                                  ub.data(),
-                                  m_lbA.data(),
-                                  b.data(), 
-                                  m_nWSR,
-                                  m_cpuTimePtr
-                                 );
+        m_qpOasesProblem.hotstart(
+            H.data(),
+            f.data(),
+            A.data(),
+            lb.data(),
+            ub.data(),
+            m_lbA.data(),
+            b.data(), 
+            nWSR,
+            p_cpuTime
+        );
     }
     
     // Get solution
@@ -101,6 +111,10 @@ bool QpOasesSolver::solve(
     qpOASES::real_t solutionData[m_NxQP];
     status = m_qpOasesProblem.getPrimalSolution(solutionData);
     solution = Eigen::Map<Vector>(solutionData, m_NxQP, 1);
+    
+    // Check feasibility
+    if (m_qpOasesProblem.isInfeasible())
+        return false;
     
     return (status == qpOASES::SUCCESSFUL_RETURN);
 }

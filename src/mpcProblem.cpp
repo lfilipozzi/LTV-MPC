@@ -165,14 +165,17 @@ QpProblem MpcProblem::toQp() {
     }
     
     // Write cost function for batch approach
+    Qbar.setZero();
     for(unsigned int k = 0; k < m_Np; k++) {
         Qbar.block(m_Nx*k, m_Nx*k, m_Nx, m_Nx) = m_costFunction.Q;
     }
     
+    Rbar.setZero();
     for(unsigned int k = 0; k < m_Nt; k++) {
         Rbar.block(m_Nu*k, m_Nu*k, m_Nu, m_Nu) = m_costFunction.R;
     }
     
+    Tbar.setZero();
     for(unsigned int k = 0; k < m_Nt; k++) {
         Tbar.block(m_Nx*k, m_Nu*k, m_Nx, m_Nu) = m_costFunction.T;
     }

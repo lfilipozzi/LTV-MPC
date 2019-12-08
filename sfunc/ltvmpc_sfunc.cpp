@@ -2,10 +2,10 @@
 #include <memory>
 #include <vector>
 
-#define MATLAB_MEX_FILE // TODO remove this before using mex
-#include "matrix.h"
-#include "mex.h"
-#include <tmwtypes.h>
+// #define MATLAB_MEX_FILE // TODO remove this before using mex
+// #include "matrix.h"
+// #include "mex.h"
+// #include <tmwtypes.h>
 
 #define S_FUNCTION_LEVEL 2
 #define S_FUNCTION_NAME ltvmpc_sfunc
@@ -197,34 +197,11 @@ static void mdlCheckParameters(SimStruct *S)
                     }
                 }
             }
-//             if (!mxIsEmpty(pCellArray)) {
-//                 const mwSize * dims = mxGetDimensions(pCellArray);
-//                 for (mwIndex idxCell = 0; idxCell < dims[0]; idxCell++) {
-//                     mxArray * pCellElement = mxGetCell(pCellArray, idxCell);
-//                     
-//                     // Get number of dimension (at least two dimension)
-//                     int nbdim = mxGetNumberOfDimensions(pCellElement);  
-//                     // Get the number of element per dimension
-//                     const int * dim = mxGetDimensions(pCellElement);    
-//                     
-//                     int subs[] = {0,*(dim+1)-1};
-//                     int index = mxCalcSingleSubscript(pCellElement, nbdim, subs);
-//                     
-//                     uint8_T * p = (uint8_T *) mxGetData(pCellElement);
-//                     
-//                     mexPrintf(
-//                         "nb dim: %d, dimension: (%d,%d), size: %d, val: %d, "
-//                         "is uint8: %d, isdouble: %d, index: %d  \n",
-//                         nbdim, *dim, *(dim+1), *(p+index), mxIsUint8(pCellElement), 
-//                         mxIsDouble(pCellElement), index
-//                     );
-//                 }
-//                 mexPrintf("\n");
-//             }
         }
     }
 
     // Penalty weight of slack variables associated to soft constraints
+    // TODO check parameter
     {
         const mxArray *pVal = ssGetSFcnParam(S, PARAM_SLACKWEIGHT_IDX);
         if (!IS_PARAM_CELLARRAY(pVal)) {
@@ -467,7 +444,7 @@ static void mdlInitializeSizes(SimStruct *S)
 
     ssSetSimulinkVersionGeneratedIn(S, "10.0");
 
-    /* Take care when specifying exception free code - see sfuntmpl_doc.c */
+    // Take care when specifying exception free code - see sfuntmpl_doc.c
     ssSetOptions(S, (SS_OPTION_EXCEPTION_FREE_CODE |
                      SS_OPTION_USE_TLC_WITH_ACCELERATOR |
                      SS_OPTION_WORKS_WITH_CODE_REUSE));
@@ -520,7 +497,7 @@ static void mdlStart(SimStruct *S)
     // Create solver and MPC controller
     std::unique_ptr<IQpSolver> solver;
     int nWSR = 100;
-    solver = std::make_unique<QpOasesSolver>(Nu*Nt, Nc*Np, nWSR);
+    solver = std::make_unique<QpOasesSolver>(Nu*Nt+Ns, Nc*Np, nWSR);
     MpcController * controller;
     controller =  new MpcController(std::move(solver), Nt, Np, Nx, Nu, Nc, Ns);
     ssGetPWork(S)[0] = (void *) controller;
@@ -628,6 +605,10 @@ static void mdlUpdate(SimStruct *S, int_T /*tid*/)
  */
 static void mdlOutputs(SimStruct *S, int_T /*tid*/)
 {
+    unsigned int * pNu;
+    pNu = (unsigned int *) mxGetData(ssGetSFcnParam(S, PARAM_NU_IDX));
+    const unsigned int Nu = *pNu;
+    
     // Get output signal pointer
     real_T * yControl = ssGetOutputPortRealSignal(S, OUT_U_IDX);
     boolean_T * yStatus = (boolean_T *) ssGetOutputPortRealSignal(S, OUT_STATUS_IDX);
@@ -637,10 +618,11 @@ static void mdlOutputs(SimStruct *S, int_T /*tid*/)
     
     if (controller) {
         // Set output
-        *yStatus = (boolean_T) controller->output(&yControl);
-//         y[0] = 2.0; // TODO remove
-//         y[1] = 4.0;
-//         yStatus[0] = true;
+        double * control;
+        *yStatus = (boolean_T) controller->output(&control);
+        for (unsigned int i = 0; i < Nu; i++) {
+            yControl[i] = *(control + i);
+        }
     }
     else {
         char msg[256];
@@ -672,6 +654,10 @@ static void mdlTerminate(SimStruct *S)
 #else
 #include "cg_sfun.h"       /* Code generation registration function */
 #endif
+
+
+
+
 
 
 

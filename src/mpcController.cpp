@@ -1,5 +1,5 @@
 #include "../include/mpcController.h"
-
+#include "../include/qpSolver.h"
 
 MpcController::MpcController(
     std::unique_ptr<IQpSolver> qpSolverPtr, 

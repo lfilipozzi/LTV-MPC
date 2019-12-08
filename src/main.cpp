@@ -77,6 +77,8 @@ int main() {
     std::cout << "Au:"  << std::endl << Au  << std::endl << std::endl;
     std::cout << "b:"   << std::endl << b   << std::endl << std::endl;
     
+    std::clock_t c_start = std::clock();
+    
     // Create QP solver
     std::unique_ptr<IQpSolver> solver;
     int nWSR = 100;
@@ -100,6 +102,8 @@ int main() {
     MatrixType * control;
     bool status = controller.output(&control);
     
+    std::clock_t c_end = std::clock();
+    
     std::cout << "status: " << status << std::endl;
     std::cout << "u: " << 
         *control << ", " << 
@@ -111,7 +115,27 @@ int main() {
         *(control+6) << ", " << 
         *(control+7) << ", " << 
         *(control+8) << ", " << 
-        *(control+9) << std::endl;
+        *(control+9) << std::endl << std::endl;
+        
+    std::cout << (c_end - c_start) / (double) CLOCKS_PER_SEC << std::endl;
+    
+    c_start = std::clock();
+    controller.update();
+    status = controller.output(&control);
+    c_end = std::clock();
+    std::cout << (c_end - c_start) / (double) CLOCKS_PER_SEC << std::endl;
+    
+    c_start = std::clock();
+    controller.update();
+    status = controller.output(&control);
+    c_end = std::clock();
+    std::cout << (c_end - c_start) / (double) CLOCKS_PER_SEC << std::endl;
+    
+    c_start = std::clock();
+    controller.update();
+    status = controller.output(&control);
+    c_end = std::clock();
+    std::cout << (c_end - c_start) / (double) CLOCKS_PER_SEC << std::endl;
     
     float tol = 1e-3;
     assert(abs(*control     - -0.5)    < tol);
@@ -243,7 +267,7 @@ int main() {
 //     delete(controller);
     
     
-// // Set up the solver
+//     // Set up the solver
 //     unsigned int NxQP(2);
 //     unsigned int NcQP(1);
 //     QpOasesSolver solver(NxQP, NcQP);

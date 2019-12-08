@@ -225,10 +225,10 @@ private:
     const unsigned int m_NcQP;
     
     /// Maximum number of working set recalculation.
-    qpOASES::int_t m_nWSR;
+    const qpOASES::int_t m_nWSR;
     
     /// Maximum CPU time to solve the problem (in second).
-    qpOASES::real_t * m_cpuTimePtr;
+    qpOASES::real_t * p_cpuTime;
     
     /**
      * Lower bound constraints. qpOASES allows to use lower bound constraints

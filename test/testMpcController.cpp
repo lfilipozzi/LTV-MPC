@@ -62,7 +62,7 @@ void testMpcController() {
     // Create QP solver
     std::unique_ptr<IQpSolver> solver;
     int nWSR = 100;
-    solver = std::make_unique<QpOasesSolver>(Nu*Nt, Nc*Np, nWSR);
+    solver = std::make_unique<QpOasesSolver>(Nu*Nt+Ns, Nc*Np, nWSR);
     
     // Create MPC controller 
     MpcController controller(std::move(solver), Nt, Np, Nx, Nu, Nc, Ns);
