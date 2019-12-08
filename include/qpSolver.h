@@ -8,6 +8,7 @@
 typedef double MatrixType;
 typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, 1> Vector;
+typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRowMajor;
 
 
 
@@ -121,7 +122,7 @@ struct QpProblem {
     }
     
     /**
-     * @brief Return the size of the QP problem. Return false if the matrices 
+     * @brief Get the size of the QP problem and return false if the matrices 
      * do not have compatible sizes.
      * @param[out] NxQP Number of decision variables.
      * @param[out] NcQP Number of constraints.

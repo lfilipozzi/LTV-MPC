@@ -48,23 +48,22 @@ bool QpOasesSolver::solve(
     
     solution.resize(m_NxQP);
     
-    const Matrix & H = qpProblem.H;
-    const Vector & f = qpProblem.f;
-    const Matrix & A = qpProblem.A;
-    const Vector & b = qpProblem.b;
+//     const Matrix & H = qpProblem.H;
+    const Vector & f  = qpProblem.f;
+//     const Matrix & A = qpProblem.A;
+    const Vector & b  = qpProblem.b;
     const Vector & lb = qpProblem.lb;
     const Vector & ub = qpProblem.ub;
     
-//     // Convert matrices to row major
-//     const MatrixRowMajor H = Eigen::Map<MatrixRowMajor> (
-//         qpProblem.H.data(), m_NxQP, m_NxQP
-//     );
-//     const Vector f = qpProblem.f;
-//     const Matrix A = qpProblem.A;
-//     const Vector b = qpProblem.b;
-//     const Vector lb = qpProblem.lb;
-//     const Vector ub = qpProblem.ub;
-        
+    // Convert matrices to row-major matrices
+    // TODO: H is square and symmetric so the row-major and column major are the same. Try without this conversion once everything is working.
+    const MatrixRowMajor H = Eigen::Map<const MatrixRowMajor> (
+        qpProblem.H.data(), NxQP, NxQP
+    );
+    const MatrixRowMajor A = Eigen::Map<const MatrixRowMajor> (
+        qpProblem.A.data(), NcQP, NxQP
+    );
+    
     if(m_coldStart) {
         // Initialize the problem
         m_qpOasesProblem = qpOASES::SQProblem(m_NxQP, m_NcQP);
@@ -80,6 +79,8 @@ bool QpOasesSolver::solve(
                               m_nWSR,
                               m_cpuTimePtr
                              );
+        
+        m_coldStart = !m_coldStart;
     }
     else {
         // Solve the problem

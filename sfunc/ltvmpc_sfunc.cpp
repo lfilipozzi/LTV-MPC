@@ -2,10 +2,10 @@
 #include <memory>
 #include <vector>
 
-// #define MATLAB_MEX_FILE // TODO remove this before using mex
-// #include "matrix.h"
-// #include "mex.h"
-// #include <tmwtypes.h>
+#define MATLAB_MEX_FILE // TODO remove this before using mex
+#include "matrix.h"
+#include "mex.h"
+#include <tmwtypes.h>
 
 #define S_FUNCTION_LEVEL 2
 #define S_FUNCTION_NAME ltvmpc_sfunc
@@ -29,7 +29,8 @@
 
 // Indices of outputs 
 #define OUT_U_IDX       0
-#define NUM_OUTPUTS     1
+#define OUT_STATUS_IDX  1
+#define NUM_OUTPUTS     2
 
 // Indices of parameters
 #define PARAM_NP_IDX            0
@@ -42,6 +43,8 @@
 #define PARAM_SLACKWEIGHT_IDX   7
 #define PARAM_TS_IDX            8
 #define NUM_PARAMS              9
+
+// TODO set macro with param name for easier debugging
 
 // S-Function states
 #define NUM_DISC_STATES       0
@@ -133,30 +136,64 @@ static void mdlCheckParameters(SimStruct *S)
 
     // Indices of soft constraints
     {
+        // Get number of constraints and slack variable
+        unsigned int * pNc, * pNs;
+        pNc = (unsigned int *) mxGetData(ssGetSFcnParam(S, PARAM_NC_IDX));
+        pNs = (unsigned int *) mxGetData(ssGetSFcnParam(S, PARAM_NS_IDX));
+        const unsigned int Nc = *pNc;
+        const unsigned int Ns = *pNs;
+        
         // TODO need to check:
         // X param is a cell
         // - size of the cell: as many element than slack variable
         // - for each component:
         //   - value is acceptable: not bigger than Nc-1, not smaller than 0
         //   - value is uint8, not empty ...
+        
+        // Check the parameter is a cell array
         const mxArray *pCellArray = ssGetSFcnParam(S, PARAM_SLACKIDX_IDX);
         if (!IS_PARAM_CELLARRAY(pCellArray)) {
             invalidParam = true;
             paramIndex = PARAM_SLACKIDX_IDX;
             goto EXIT_TYPE_POINT;
         }
-        else {
-            if (!mxIsEmpty(pCellArray)) {
-                const mwSize * dims = mxGetDimensions(pCellArray);
-                for (mwIndex idxCell = 0; idxCell < dims[0]; idxCell++) {
-                    // Get cell element of the array
-                    mxArray * pCellElement = mxGetCell(pCellArray, idxCell);
-                    
-                    // Check type
-                    if (!IS_PARAM_UINT8(pCellElement)) {
-                        invalidParam = true;
+        
+        // The cell can be empty if there is no soft constraint. Check the 
+        // parameter if it is not empty
+        if (!mxIsEmpty(pCellArray)) {
+            // Check the dimension of the cell array
+            const mwSize * dims = mxGetDimensions(pCellArray);
+            if (dims[0] != Ns) {
+                invalidParam = true;
+                paramIndex = PARAM_SLACKIDX_IDX;
+                goto EXIT_CELL_SIZE_POINT;
+            }
+            
+            // Check each element of the cell array
+            for (mwIndex idxCell = 0; idxCell < dims[0]; idxCell++) {
+                // Get cell element of the array
+                mxArray * pCell = mxGetCell(pCellArray, idxCell);
+                
+                // Check type of the element
+                if (!IS_PARAM_UINT8(pCell)) {
+                    invalidParam = true;
+                    paramIndex = PARAM_SLACKIDX_IDX;
+                    goto EXIT_CELL_TYPE_POINT;
+                }
+                
+                // Check value of the element
+                const mwSize * dim = mxGetDimensions(pCell);
+                uint8_T * p = (uint8_T *) mxGetData(pCell);
+                for (int rowIdx = 0; rowIdx < dim[0]; rowIdx++) {
+                    for (int colIdx = 0; colIdx < dim[1]; colIdx++) {
+                        int subs[] = {rowIdx, colIdx};
+                        int index = mxCalcSingleSubscript(pCell, 2, subs);
+                        int value = (*(p+index)-1);
+                        if (!(value >= 0 && value < Nc)) {
+                            invalidParam = true;
                         paramIndex = PARAM_SLACKIDX_IDX;
-                        goto EXIT_CELL_TYPE_POINT;
+                        goto EXIT_CELL_VALUE_POINT;
+                        }
                     }
                 }
             }
@@ -223,6 +260,24 @@ static void mdlCheckParameters(SimStruct *S)
         sprintf(parameterErrorMsg, "The data type and or complexity of the "
             "content of the cell in parameter %d does not match the "
             "requirement.", paramIndex + 1);
+        ssSetErrorStatus(S, parameterErrorMsg);
+    }
+    return;
+    
+    EXIT_CELL_SIZE_POINT:
+    if (invalidParam) {
+        char parameterErrorMsg[1024];
+        sprintf(parameterErrorMsg, "The data size of the cell in parameter "
+            "%d does not match the requirement.", paramIndex + 1);
+        ssSetErrorStatus(S, parameterErrorMsg);
+    }
+    return;
+    
+    EXIT_CELL_VALUE_POINT:
+    if (invalidParam) {
+        char parameterErrorMsg[1024];
+        sprintf(parameterErrorMsg, "The value of the cell in parameter "
+            "%d does not match the requirement.", paramIndex + 1);
         ssSetErrorStatus(S, parameterErrorMsg);
     }
     return;
@@ -394,6 +449,11 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetOutputPortWidth(S, OUT_U_IDX, Nu);
     ssSetOutputPortDataType(S, OUT_U_IDX, SS_DOUBLE);
     ssSetOutputPortComplexSignal(S, OUT_U_IDX, COMPLEX_NO);
+    
+    // Status of the optimization
+    ssSetOutputPortWidth(S, OUT_STATUS_IDX, 1);
+    ssSetOutputPortDataType(S, OUT_STATUS_IDX, SS_BOOLEAN);
+    ssSetOutputPortComplexSignal(S, OUT_STATUS_IDX, COMPLEX_NO);
 
     /*
      * Set the number of sample times and S-function states
@@ -459,7 +519,8 @@ static void mdlStart(SimStruct *S)
     
     // Create solver and MPC controller
     std::unique_ptr<IQpSolver> solver;
-    solver = std::make_unique<QpOasesSolver>(Nu*Np, Nc);
+    int nWSR = 100;
+    solver = std::make_unique<QpOasesSolver>(Nu*Nt, Nc*Np, nWSR);
     MpcController * controller;
     controller =  new MpcController(std::move(solver), Nt, Np, Nx, Nu, Nc, Ns);
     ssGetPWork(S)[0] = (void *) controller;
@@ -568,16 +629,18 @@ static void mdlUpdate(SimStruct *S, int_T /*tid*/)
 static void mdlOutputs(SimStruct *S, int_T /*tid*/)
 {
     // Get output signal pointer
-    real_T * y = ssGetOutputPortRealSignal(S, OUT_U_IDX);
+    real_T * yControl = ssGetOutputPortRealSignal(S, OUT_U_IDX);
+    boolean_T * yStatus = (boolean_T *) ssGetOutputPortRealSignal(S, OUT_STATUS_IDX);
     
     // Get MPC controller from P states
     MpcController * controller = (MpcController *) ssGetPWork(S)[0];
     
     if (controller) {
         // Set output
-//         controller->output(&y);
-        y[0] = 2.0; // TODO remove
-        y[1] = 3.0;
+        *yStatus = (boolean_T) controller->output(&yControl);
+//         y[0] = 2.0; // TODO remove
+//         y[1] = 4.0;
+//         yStatus[0] = true;
     }
     else {
         char msg[256];

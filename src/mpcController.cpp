@@ -25,7 +25,7 @@ bool MpcController::update() {
 }
 
 
-bool MpcController::output(MatrixType * control[]) {
+bool MpcController::output(MatrixType ** control) {
     *control = m_controlSeq.data();
     return m_status;
 };
