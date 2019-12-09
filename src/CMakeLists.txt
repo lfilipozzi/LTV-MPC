@@ -40,7 +40,10 @@ add_definitions(-DGIT_BRANCH=${GIT_BRANCH})
 add_library(libltvmpc STATIC ${libltvmpc_SRC})
 
 # Add Eigen header files
-include_directories(${CMAKE_SOURCE_DIR}/lib/eigen/Eigen)
+include_directories(
+    ${CMAKE_SOURCE_DIR}/lib/eigen/Eigen
+    ${CMAKE_SOURCE_DIR}/lib/eigen
+)
 
 # Link qpOASES library
 file(GLOB qpOASES_SRC ${CMAKE_SOURCE_DIR}/lib/qpoases/src/*.cpp)

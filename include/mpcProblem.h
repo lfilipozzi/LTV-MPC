@@ -59,13 +59,15 @@ public:
      * @param[in] Ts The sampling time of the model (-1 for continuous-time
      * system).
      */
-    void setPlantModel(const MatrixType * A, const MatrixType * B, float Ts);
+    void setPlantModel(
+        const MatrixType * A, const MatrixType * B, float Ts = -1.0
+    );
     
-//     /**
-//      * @brief Discretize the state-space.
-//      * @param[in] Ts The sampling time.
-//      */
-//     void discretizePlant(float Ts);
+    /**
+     * @brief Discretize the state-space. Return true if successful.
+     * @param[in] Ts The sampling time.
+     */
+    bool discretizePlant(float Ts);
     
     /**
      * @brief Set the matrices and vectors defining the polytopic constraints.
@@ -109,6 +111,20 @@ public:
      *  batch approach.
      */
     QpProblem toQp();
+    
+    /**
+     * @brief Get the plant model.
+     * @param[out] A The A state-space matrix.
+     * @param[out] B The B state-space matrix.
+     * @param[out] Ts The sampling time.
+     */
+    void getPlantModel(Matrix & A, Matrix & B, float & Ts) const {
+        A.resize(m_plant.A.rows(), m_plant.A.cols());
+        B.resize(m_plant.B.rows(), m_plant.B.cols());
+        A  = m_plant.A;
+        B  = m_plant.B;
+        Ts = m_plant.Ts;
+    };
     
 private:
     /// Control horizon

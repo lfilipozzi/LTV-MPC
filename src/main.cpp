@@ -5,8 +5,32 @@
 #include "../include/mpcProblem.h"
 #include "../include/mpcController.h"
 
+#include <unsupported/Eigen/MatrixFunctions>
+
+
 /** Example for qpOASES main function using the QProblem class. */
 int main() {
+    {
+        unsigned int Nx = 3;
+        unsigned int Nu = 3;
+        Matrix A, B;
+        A.resize(Nx, Nx);
+        B.resize(Nx, Nu);
+        A << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+        B << 1, 0, 0, 0, 1, 0, 0, 0, 1;
+        float Ts = 0.1;
+        
+        std::clock_t c_start = std::clock();
+        A = (A*Ts).exp();
+        B *= A;
+        std::clock_t c_end = std::clock();
+        std::cout << (c_end - c_start) / (double) CLOCKS_PER_SEC << std::endl;
+        
+        std::cout << "A:" << A << std::endl << std::endl;
+        std::cout << "B:" << B << std::endl << std::endl;
+    }
+    
+    
     // Define cost function
     Matrix Q, R, T;
     Vector fx, fu;

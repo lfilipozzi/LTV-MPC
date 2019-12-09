@@ -1,6 +1,7 @@
 #include "../include/mpcProblem.h"
 #include <limits>
 #include <iostream>
+#include <unsupported/Eigen/MatrixFunctions>
 
 // Forbid Eigen automatic resizing with operator=
 #define EIGEN_NO_AUTOMATIC_RESIZING
@@ -32,12 +33,6 @@ MpcProblem::MpcProblem(
     m_constraints.As.resize(m_Nc, m_Ns);
     m_constraints.b.resize(m_Nc);
     // Resize the batch QP problem matrices
-//     m_qp.H.resize(m_Nu*m_Nt+m_Ns, m_Nu*m_Nt+m_Ns);
-//     m_qp.f.resize(m_Nu*m_Nt+m_Ns);
-//     m_qp.A.resize(m_Np*m_Nc, m_Nu*m_Nt+m_Ns);
-//     m_qp.b.resize(m_Np*m_Nc);
-//     m_qp.lb.resize(m_Nu*m_Nt+m_Ns);
-//     m_qp.ub.resize(m_Nu*m_Nt+m_Ns);
     m_qp.resize(m_Nu*m_Nt+m_Ns, m_Np*m_Nc);
     // Initialize matrices whose value is set by entry
     m_constraints.As.Zero(m_Nc, m_Ns);
@@ -58,16 +53,16 @@ void MpcProblem::setPlantModel(
 }
 
 
-// void MpcProblem::discretizePlant(float Ts) {
-//     if (m_plant.Ts == -1.0) {
-//         Matrix Atmp;
-//         Atmp = m_plant.A*Ts;
-//         m_plant.A = (m_plant.A*Ts).exp(m_Nx, m_Nx).eval();
-//         m_plant.B *= m_plant.A;
-//         m_plant.Ts = Ts;
-//     }
-//     // TODO else
-// }
+bool MpcProblem::discretizePlant(float Ts) {
+    if (m_plant.Ts == -1.0) {
+        m_plant.A = (m_plant.A*Ts).exp();
+        m_plant.B *= m_plant.A;
+        m_plant.Ts = Ts;
+        return true;
+    }
+    else
+        return false;
+}
 
 
 

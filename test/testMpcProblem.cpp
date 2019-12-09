@@ -119,8 +119,52 @@ void testConversionToQp() {
 }
 
 
+/**
+ * Test discretization of the system.
+ */
+void testDiscretization() {
+    unsigned int Nx = 3;
+    unsigned int Nu = 3;
+    Matrix A, B;
+    A.resize(Nx, Nx);
+    B.resize(Nx, Nu);
+    A << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+    B << 1, 0, 0, 0, 1, 0, 0, 0, 1;
+    float Ts = 0.1;
+    
+    unsigned int Np = 0;
+    unsigned int Nt = 0;
+    unsigned int Nc = 0;
+    unsigned int Ns = 0;
+    MpcProblem mpcProblem(Nt, Np, Nx, Nu, Nc, Ns);
+    
+    // Discretize and check results
+    mpcProblem.setPlantModel(A.data(), B.data());
+    bool status = mpcProblem.discretizePlant(Ts);
+    
+    Matrix AExpected;
+    float TsExpected = Ts;
+    mpcProblem.getPlantModel(A, B, Ts);
+    
+    AExpected.resize(Nx, Nx);
+    AExpected << 
+        1.3732,   0.5315,   0.6898,
+        1.0093,   2.2481,   1.4870,
+        1.6454,   1.9648,   3.2843; 
+    float tol = 1e-3;
+    assert((A - AExpected).cwiseAbs().minCoeff() < tol);
+    assert(Ts == TsExpected);
+    assert(status);
+    
+    // Check no discretization if the model is already discrete
+    status = mpcProblem.discretizePlant(Ts);
+    assert(!status);
+}
+
+
 int main() {
     testConversionToQp();
+    testDiscretization();
     
     return 0;
 }

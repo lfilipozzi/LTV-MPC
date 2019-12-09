@@ -91,13 +91,13 @@ public:
         m_mpcProblem.setPlantModel(A, B, Ts);
     };
     
-//     /**
-//      * @brief Discretize the state-space.
-//      * @param[in] Ts The sampling time.
-//      */
-//     inline void discretizePlant(float Ts) {
-//         m_mpcProblem.discretizePlant(Ts);
-//     };
+    /**
+     * @brief Discretize the state-space. Return true if successful.
+     * @param[in] Ts The sampling time.
+     */
+    inline bool discretizePlant(float Ts) {
+        return m_mpcProblem.discretizePlant(Ts);
+    };
     
     /**
      * @brief Set the matrices and vectors defining the polytopic constraints.
