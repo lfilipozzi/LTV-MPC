@@ -11,6 +11,11 @@ MpcController::MpcController(
     p_qpSolver(std::move(qpSolverPtr)) {
     // Resize vectors
     m_controlSeq.resize(m_Np*m_Nu + m_Ns);
+    m_scaling.input.resize(m_Nu);
+    m_scaling.slack.resize(m_Ns);
+    // Initialize matrices
+    m_scaling.input.setOnes();
+    m_scaling.slack.setOnes();
 }
 
 
@@ -18,9 +23,25 @@ void MpcController::initialize() {}
 
 
 bool MpcController::update() {
-    // Solve the MPC problem with the batch approach
+    // Compute the scaling
+    DiagonalMatrix scaling;
+    Vector scalingDiag;
+    scaling.resize(m_Nu*m_Nt+m_Ns);
+    scalingDiag.resize(m_Nu*m_Nt+m_Ns);
+    for (unsigned int i = 0; i < m_Nt; i++) {
+        scalingDiag.segment(i*m_Nu, m_Nu) = m_scaling.input;
+    }
+    scalingDiag.segment(m_Nu*m_Nt, m_Ns) = m_scaling.slack;
+    scaling = scalingDiag.asDiagonal();
+    
+    /* Solve the MPC problem with the batch approach.
+     * Transform the MPC problem to a QP problem, scale it, solve it, and 
+     * unscale the results.
+     */
     QpProblem qpFormulation(m_mpcProblem.toQp());
+    qpFormulation.scale(scaling);
     m_status = p_qpSolver->solve(qpFormulation, m_controlSeq);
+    m_controlSeq = scaling * m_controlSeq;
     return m_status;
 }
 

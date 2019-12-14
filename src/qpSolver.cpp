@@ -88,7 +88,7 @@ bool QpOasesSolver::solve(
             p_cpuTime
         );
         
-        if (m_qpOasesProblem.isInitialised())
+        if (m_qpOasesProblem.isInitialised() && m_qpOasesProblem.isSolved())
             m_coldStart = !m_coldStart;
     }
     else {
@@ -104,6 +104,9 @@ bool QpOasesSolver::solve(
             nWSR,
             p_cpuTime
         );
+        
+        if (!m_qpOasesProblem.isSolved())
+            m_coldStart = !m_coldStart;
     }
     
     // Get solution

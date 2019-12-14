@@ -8,6 +8,7 @@
 typedef double MatrixType;
 typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, Eigen::Dynamic> Matrix;
 typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, 1> Vector;
+typedef Eigen::DiagonalMatrix<MatrixType, Eigen::Dynamic> DiagonalMatrix;
 typedef Eigen::Matrix<MatrixType, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixRowMajor;
 
 
@@ -147,6 +148,18 @@ struct QpProblem {
         NxQP = H.rows();
         NcQP = A.rows();
         return true;
+    }
+    
+    /**
+     * @brief Scale the problem.
+     * @param scaling A diagonal matrix that applies the scaling.
+     */
+    void scale(DiagonalMatrix scaling) {
+        H = scaling * H * scaling;
+        f = scaling * f;
+        A = A * scaling;
+        lb = scaling.inverse() * lb;
+        ub = scaling.inverse() * ub;
     }
 };
 

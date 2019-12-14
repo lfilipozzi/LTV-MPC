@@ -140,6 +140,20 @@ public:
      */
     inline void resetSoftConsraints() {m_mpcProblem.resetSoftConsraints();};
     
+    /**
+     * @brief Set a scale factor for the input.
+     * @param[in] inputIdx The index of the input.
+     * @param[in] actor The scaling factor.
+     */
+    void setInputScaleFactor(
+        unsigned int const & inputIdx, double const & factor
+    ) {
+        if (!(inputIdx >= 0 && inputIdx < m_Nu && factor > 0))
+            return;
+        
+        m_scaling.input(inputIdx) = 1/factor;
+    };
+    
 private:
     /// Control horizon
     const unsigned int m_Nt;
@@ -170,6 +184,12 @@ private:
     
     /// Control sequence (solution of the MPC problem)
     Vector m_controlSeq;
+    
+    /// Scaling factors
+    struct ScalingFactors {
+        Vector input;
+        Vector slack;
+    } m_scaling;
 };
 
 

@@ -32,10 +32,12 @@ MpcProblem::MpcProblem(
     m_constraints.Au.resize(m_Nc, m_Nu);
     m_constraints.As.resize(m_Nc, m_Ns);
     m_constraints.b.resize(m_Nc);
+    m_bounds.lb.resize(m_Nu);
+    m_bounds.ub.resize(m_Nu);
     // Resize the batch QP problem matrices
     m_qp.resize(m_Nu*m_Nt+m_Ns, m_Np*m_Nc);
-    // Initialize matrices whose value is set by entry
-    m_constraints.As.Zero(m_Nc, m_Ns);
+    // Initialize matrices
+    m_constraints.As.setZero();
 }
 
 
@@ -121,7 +123,6 @@ void MpcProblem::resetSoftConsraints() {
     // Set the inequality matrix on slack variable to zero
     m_constraints.As.Zero(m_Nc, m_Ns);
 }
-
 
 
 QpProblem MpcProblem::toQp() {
