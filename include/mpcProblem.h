@@ -107,6 +107,32 @@ public:
     void resetSoftConsraints();
     
     /**
+     * @brief Set a scale factor for the input.
+     * @param[in] inputIdx The index of the input.
+     * @param[in] actor The scaling factor.
+     */
+    void setInputScaleFactor(
+        unsigned int const & inputIdx, double const & factor
+    ) {
+        if (!(inputIdx >= 0 && inputIdx < m_Nu && factor > 0))
+            return;
+        
+        m_scaling.input(inputIdx) = 1/factor;
+    };
+    
+    /**
+     * @brief Scale the MPC problem by modifying the matrices defining the MPC 
+     * problem.
+     */
+    void scale();
+    
+    /**
+     * @brief Unscale the solution of the problem.
+     * @param[in,out] solution The solution.
+     */
+    void unscaleSol(Vector & solution);
+    
+    /**
      * @brief Transform the MPC Problem into a standard QP problem by using the 
      *  batch approach.
      */
@@ -147,12 +173,13 @@ private:
     
     /// The cost function
     struct CostFunction {
-        Matrix Q;   // Quadratic cost on the states
-        Matrix R;   // Quadratic cost on the inputs
-        Matrix T;   // Quadratic cost on the states-inputs
-        Matrix S;   // Quadratic cost on the slack variables
-        Vector fx;  // Linear cost on the states
-        Vector fu;  // Linear cost on the inputs
+        Matrix Q;       // Quadratic cost on the states
+        Matrix R;       // Quadratic cost on the inputs
+        Matrix T;       // Quadratic cost on the states-inputs
+        Matrix S;       // Quadratic cost on the slack variables
+        Vector fx;      // Linear cost on the states
+        Vector fu;      // Linear cost on the inputs
+        bool isScaled = false;
     } m_costFunction;
     
     /// Initial condition
@@ -163,6 +190,7 @@ private:
         Matrix A;
         Matrix B;
         float Ts;
+        bool isScaled = false;
     } m_plant;
     
     /// Polytopic constraints of the problem (aka constraints)
@@ -171,13 +199,21 @@ private:
         Matrix Au;
         Matrix As;
         Vector b;
+        bool isScaled = false;
     } m_constraints;
     
     /// Plant input constraints (aka bounds)
     struct Bounds {
         Vector lb;
         Vector ub;
+        bool isScaled = false;
     } m_bounds;
+    
+    /// Scaling factors
+    struct ScalingFactors {
+        Vector input;
+        Vector slack;
+    } m_scaling;
     
     /// QP formulation of the MPC problem
     QpProblem m_qp;

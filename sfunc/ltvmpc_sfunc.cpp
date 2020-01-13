@@ -1,8 +1,9 @@
 #include "../include/mpcController.h"
 #include <memory>
 #include <vector>
+#include <ctime>
 
-// #define MATLAB_MEX_FILE // TODO remove this before using mex
+// #define MATLAB_MEX_FILE // TODO comment when compiling with MEX
 // #include "matrix.h"
 // #include "mex.h"
 // #include <tmwtypes.h>
@@ -30,7 +31,8 @@
 // Indices of outputs 
 #define OUT_U_IDX       0
 #define OUT_STATUS_IDX  1
-#define NUM_OUTPUTS     2
+#define OUT_TIME_IDX    2
+#define NUM_OUTPUTS     3
 
 // Indices of parameters
 #define PARAM_NP_IDX            0
@@ -46,9 +48,11 @@
 
 // TODO set macro with param name for easier debugging
 
-// S-Function states
-#define NUM_DISC_STATES       0
-#define NUM_CONT_STATES       0
+// S-Function discrete states
+#define NUM_DISC_STATES     0
+
+// S-Function continuous states
+#define NUM_CONT_STATES     0
 
 
 
@@ -329,95 +333,95 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortMatrixDimensions(S, IN_Q_IDX, Nx, Nx);
     ssSetInputPortDataType(S, IN_Q_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_Q_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_Q_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_Q_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_Q_IDX, 1);
 
     // R matrix input
     ssSetInputPortMatrixDimensions(S, IN_R_IDX, Nu, Nu);
     ssSetInputPortDataType(S, IN_R_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_R_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_R_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_R_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_R_IDX, 1);
 
     // T matrix input
     ssSetInputPortMatrixDimensions(S, IN_T_IDX, Nx, Nu);
     ssSetInputPortDataType(S, IN_T_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_T_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_T_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_T_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_T_IDX, 1);
 
     // fx vector input
     ssSetInputPortWidth(S, IN_FX_IDX, Nx);
     ssSetInputPortDataType(S, IN_FX_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_FX_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_FX_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_FX_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_FX_IDX, 1);
 
     // fu vector input
     ssSetInputPortWidth(S, IN_FU_IDX, Nu);
     ssSetInputPortDataType(S, IN_FU_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_FU_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_FU_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_FU_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_FU_IDX, 1);
 
     // x0 vector input
     ssSetInputPortWidth(S, IN_X0_IDX, Nx);
     ssSetInputPortDataType(S, IN_X0_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_X0_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_X0_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_X0_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_X0_IDX, 1);
 
     // A state-space matrix
     ssSetInputPortMatrixDimensions(S, IN_A_IDX, Nx, Nx);
     ssSetInputPortDataType(S, IN_A_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_A_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_A_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_A_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_A_IDX, 1);
 
     // B state-space matrix
     ssSetInputPortMatrixDimensions(S, IN_B_IDX, Nx, Nu);
     ssSetInputPortDataType(S, IN_B_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_B_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_B_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_B_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_B_IDX, 1);
 
     // Lower-bound actuator saturation
     ssSetInputPortWidth(S, IN_ULB_IDX, Nu);
     ssSetInputPortDataType(S, IN_ULB_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_ULB_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_ULB_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_ULB_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_ULB_IDX, 1);
 
     // Upper-bound actuator saturation
     ssSetInputPortWidth(S, IN_UUB_IDX, Nu);
     ssSetInputPortDataType(S, IN_UUB_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_UUB_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_UUB_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_UUB_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_UUB_IDX, 1);
 
     // Inequality matrix on the states
     ssSetInputPortMatrixDimensions(S, IN_AINEQX_IDX, Nc, Nx);
     ssSetInputPortDataType(S, IN_AINEQX_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_AINEQX_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_AINEQX_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_AINEQX_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_AINEQX_IDX, 1);
 
     // Inequality matrix on the inputs
     ssSetInputPortMatrixDimensions(S, IN_AINEQU_IDX, Nc, Nu);
     ssSetInputPortDataType(S, IN_AINEQU_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_AINEQU_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_AINEQU_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_AINEQU_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_AINEQU_IDX, 1);
 
     // Polytopic constraints bound
     ssSetInputPortWidth(S, IN_BINEQ_IDX, Nc);
     ssSetInputPortDataType(S, IN_BINEQ_IDX, SS_DOUBLE);
     ssSetInputPortComplexSignal(S, IN_BINEQ_IDX, COMPLEX_NO);
-    ssSetInputPortDirectFeedThrough(S, IN_BINEQ_IDX, 0);
+    ssSetInputPortDirectFeedThrough(S, IN_BINEQ_IDX, 1);
     ssSetInputPortRequiredContiguous(S, IN_BINEQ_IDX, 1);
     
     /*
-     * Configure the block inputs.
+     * Configure the block outputs.
      */
     if (!ssSetNumOutputPorts(S, NUM_OUTPUTS)) 
         return;
@@ -431,6 +435,11 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetOutputPortWidth(S, OUT_STATUS_IDX, 1);
     ssSetOutputPortDataType(S, OUT_STATUS_IDX, SS_BOOLEAN);
     ssSetOutputPortComplexSignal(S, OUT_STATUS_IDX, COMPLEX_NO);
+    
+    // Computation time
+    ssSetOutputPortWidth(S, OUT_TIME_IDX, 1);
+    ssSetOutputPortDataType(S, OUT_TIME_IDX, SS_DOUBLE);
+    ssSetOutputPortComplexSignal(S, OUT_TIME_IDX, COMPLEX_NO);
 
     /*
      * Set the number of sample times and S-function states
@@ -461,7 +470,7 @@ static void mdlInitializeSampleTimes(SimStruct *S)
 {
     time_T Ts = mxGetScalar(ssGetSFcnParam(S, PARAM_TS_IDX));
     ssSetSampleTime(S, 0, Ts);
-    ssSetModelReferenceSampleTimeDefaultInheritance(S);
+    ssSetModelReferenceSampleTimeDisallowInheritance(S);
     ssSetOffsetTime(S, 0, 0.0);
 }
 
@@ -531,8 +540,10 @@ static void mdlStart(SimStruct *S)
         }
         
         // Set soft constraint in the MPC controller
-        if (controller)
+        if (controller) {
+            controller->initialize();
             controller->setSoftConstraints(slackIdx, constraintsIdx, weight);
+        }
         else {
             char msg[256];
             sprintf(msg,"Error due to null pointer");
@@ -547,13 +558,20 @@ static void mdlStart(SimStruct *S)
 
 
 
-#define MDL_UPDATE  /* Change to #undef to remove function */
-#if defined(MDL_UPDATE)
+#define MDL_OUTPUTS
 /**
- *  @brief This function is called at each major step.
+ * @brief Update the block's states and compute its output signals.
  */
-static void mdlUpdate(SimStruct *S, int_T /*tid*/)
+static void mdlOutputs(SimStruct *S, int_T /*tid*/)
 {
+    MpcController * controller = (MpcController *) ssGetPWork(S)[0];
+    
+    /*
+     * Compute the solution of the MPC problem.
+     */
+    // Start clock
+    std::clock_t c_start = std::clock();
+    
     // Get input signal pointer
     const real_T * Q   = (real_T *) ssGetInputPortRealSignal(S, IN_Q_IDX);
     const real_T * R   = (real_T *) ssGetInputPortRealSignal(S, IN_R_IDX);
@@ -568,9 +586,6 @@ static void mdlUpdate(SimStruct *S, int_T /*tid*/)
     const real_T * Ax  = (real_T *) ssGetInputPortRealSignal(S, IN_AINEQX_IDX);
     const real_T * Au  = (real_T *) ssGetInputPortRealSignal(S, IN_AINEQU_IDX);
     const real_T * b   = (real_T *) ssGetInputPortRealSignal(S, IN_BINEQ_IDX);
-    
-    // Get MPC controller from P states
-    MpcController * controller = (MpcController *) ssGetPWork(S)[0];
     
     if (controller) {
         // Set LTV-MPC formulation
@@ -592,29 +607,21 @@ static void mdlUpdate(SimStruct *S, int_T /*tid*/)
         ssSetErrorStatus(S, msg);
         return;
     }
-}
-#endif // MDL_UPDATE
-
-
-
-
-
-#define MDL_OUTPUTS
-/**
- * @brief This function is executed at each minor step.
- */
-static void mdlOutputs(SimStruct *S, int_T /*tid*/)
-{
+    
+    // Get timer
+    std::clock_t c_end = std::clock();
+    
+    /*
+     * Output the signals.
+     */
     unsigned int * pNu;
     pNu = (unsigned int *) mxGetData(ssGetSFcnParam(S, PARAM_NU_IDX));
     const unsigned int Nu = *pNu;
     
-    // Get output signal pointer
+    // Output solution and optimization status
     real_T * yControl = ssGetOutputPortRealSignal(S, OUT_U_IDX);
     boolean_T * yStatus = (boolean_T *) ssGetOutputPortRealSignal(S, OUT_STATUS_IDX);
-    
-    // Get MPC controller from P states
-    MpcController * controller = (MpcController *) ssGetPWork(S)[0];
+    real_T * yTime = ssGetOutputPortRealSignal(S, OUT_TIME_IDX);
     
     if (controller) {
         // Set output
@@ -630,6 +637,9 @@ static void mdlOutputs(SimStruct *S, int_T /*tid*/)
         ssSetErrorStatus(S, msg);
         return;
     }
+    
+    // Output computation time
+    *yTime = (c_end - c_start) / (double) CLOCKS_PER_SEC;
 }
 
 
@@ -645,6 +655,7 @@ static void mdlTerminate(SimStruct *S)
 {
     MpcController  * controller;
     controller = (MpcController *) ssGetPWork(S)[0];
+    controller->terminate();
     delete controller;
 }
 

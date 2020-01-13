@@ -115,7 +115,9 @@ public:
      * @param[in] lb The lower bound input constraints.
      * @param[in] ub The upper bound input constraints.
      */
-    void setActuatorBounds(const MatrixType * lb, const MatrixType * ub) {
+    inline void setActuatorBounds(
+        const MatrixType * lb, const MatrixType * ub
+    ) {
         m_mpcProblem.setActuatorBounds(lb, ub);
     };
     
@@ -145,13 +147,10 @@ public:
      * @param[in] inputIdx The index of the input.
      * @param[in] actor The scaling factor.
      */
-    void setInputScaleFactor(
+    inline void setInputScaleFactor(
         unsigned int const & inputIdx, double const & factor
     ) {
-        if (!(inputIdx >= 0 && inputIdx < m_Nu && factor > 0))
-            return;
-        
-        m_scaling.input(inputIdx) = 1/factor;
+        m_mpcProblem.setInputScaleFactor(inputIdx, factor);
     };
     
 private:
@@ -184,12 +183,6 @@ private:
     
     /// Control sequence (solution of the MPC problem)
     Vector m_controlSeq;
-    
-    /// Scaling factors
-    struct ScalingFactors {
-        Vector input;
-        Vector slack;
-    } m_scaling;
 };
 
 

@@ -31,7 +31,7 @@ lpath_libltvmpc_name = [fullfile('..','build','lib') '/' 'liblibltvmpc.a'];
 %% Build the MEX file
 % Option
 verbose = true;
-debug = true;
+debug = false;%true;
 
 % Build command
 mexarg = {'CXXFLAGS="$CXXFLAGS -std=c++14"', ...

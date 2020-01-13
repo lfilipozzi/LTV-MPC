@@ -149,18 +149,6 @@ struct QpProblem {
         NcQP = A.rows();
         return true;
     }
-    
-    /**
-     * @brief Scale the problem.
-     * @param scaling A diagonal matrix that applies the scaling.
-     */
-    void scale(DiagonalMatrix scaling) {
-        H = scaling * H * scaling;
-        f = scaling * f;
-        A = A * scaling;
-        lb = scaling.inverse() * lb;
-        ub = scaling.inverse() * ub;
-    }
 };
 
 
@@ -219,9 +207,6 @@ public:
     );
     
 private:
-    /// Set cold-start or hot-start
-    bool m_coldStart;
-    
     /// The formulation of the QP problem in qpOASES
     qpOASES::SQProblem m_qpOasesProblem;
     

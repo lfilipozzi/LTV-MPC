@@ -34,15 +34,32 @@ MpcProblem::MpcProblem(
     m_constraints.b.resize(m_Nc);
     m_bounds.lb.resize(m_Nu);
     m_bounds.ub.resize(m_Nu);
+    m_scaling.input.resize(m_Nu);
+    m_scaling.slack.resize(m_Ns);
     // Resize the batch QP problem matrices
     m_qp.resize(m_Nu*m_Nt+m_Ns, m_Np*m_Nc);
     // Initialize matrices
     m_constraints.As.setZero();
+    m_scaling.input.setOnes();
+    m_scaling.slack.setOnes();
 }
 
 
 MpcProblem::~MpcProblem() {
     
+}
+
+
+void MpcProblem::setCostFunction(
+    const MatrixType * Q, const MatrixType * R, const MatrixType * T, 
+    const MatrixType * fx, const MatrixType * fu
+) {
+    m_costFunction.Q = Eigen::Map<const Matrix>(Q, m_Nx, m_Nx);
+    m_costFunction.R = Eigen::Map<const Matrix>(R, m_Nu, m_Nu);
+    m_costFunction.T = Eigen::Map<const Matrix>(T, m_Nx, m_Nu);
+    m_costFunction.fx = Eigen::Map<const Vector>(fx, m_Nx);
+    m_costFunction.fu = Eigen::Map<const Vector>(fu, m_Nu);
+    m_costFunction.isScaled = false;
 }
 
 
@@ -52,6 +69,7 @@ void MpcProblem::setPlantModel(
     m_plant.A = Eigen::Map<const Matrix>(A, m_Nx, m_Nx);
     m_plant.B = Eigen::Map<const Matrix>(B, m_Nx, m_Nu);
     m_plant.Ts = Ts;
+    m_plant.isScaled = false;
 }
 
 
@@ -67,19 +85,6 @@ bool MpcProblem::discretizePlant(float Ts) {
 }
 
 
-
-void MpcProblem::setCostFunction(
-    const MatrixType * Q, const MatrixType * R, const MatrixType * T, 
-    const MatrixType * fx, const MatrixType * fu
-) {
-    m_costFunction.Q = Eigen::Map<const Matrix>(Q, m_Nx, m_Nx);
-    m_costFunction.R = Eigen::Map<const Matrix>(R, m_Nu, m_Nu);
-    m_costFunction.T = Eigen::Map<const Matrix>(T, m_Nx, m_Nu);
-    m_costFunction.fx = Eigen::Map<const Vector>(fx, m_Nx);
-    m_costFunction.fu = Eigen::Map<const Vector>(fu, m_Nu);
-}
-
-
 void MpcProblem::setConstraints(
     const MatrixType * Ax, const MatrixType * Au, const MatrixType * b
 ) {
@@ -87,6 +92,7 @@ void MpcProblem::setConstraints(
     m_constraints.Ax = Eigen::Map<const Matrix>(Ax, m_Nc, m_Nx);
     m_constraints.Au = Eigen::Map<const Matrix>(Au, m_Nc, m_Nu);
     m_constraints.b  = Eigen::Map<const Vector>(b, m_Nc);
+    m_constraints.isScaled = false;
 }
 
 
@@ -95,6 +101,7 @@ void MpcProblem::setActuatorBounds(
 ) {
     m_bounds.lb = Eigen::Map<const Vector>(lb, m_Nu);
     m_bounds.ub = Eigen::Map<const Vector>(ub, m_Nu);
+    m_bounds.isScaled = false;
 }
 
 
@@ -125,6 +132,54 @@ void MpcProblem::resetSoftConsraints() {
 }
 
 
+void MpcProblem::scale() {
+    // Apply scaling
+    DiagonalMatrix iScaling = m_scaling.input.asDiagonal();
+    DiagonalMatrix sScaling = m_scaling.slack.asDiagonal();
+    
+    if (!m_costFunction.isScaled) {
+        m_costFunction.R = iScaling * m_costFunction.R * iScaling;
+        m_costFunction.T = m_costFunction.T * iScaling;
+        m_costFunction.S = sScaling * m_costFunction.S * sScaling;
+        m_costFunction.fu = iScaling * m_costFunction.fu;
+        m_costFunction.isScaled = true;
+    }
+    if (!m_plant.isScaled) {
+        m_plant.B = m_plant.B * iScaling;
+        m_plant.isScaled = true;
+    }
+    if (!m_constraints.isScaled) {
+        m_constraints.Au = m_constraints.Au * iScaling;
+        m_constraints.As = m_constraints.As * sScaling;
+        m_constraints.isScaled = true;
+    }
+    if (!m_bounds.isScaled) {
+        m_bounds.lb = iScaling.inverse() * m_bounds.lb;
+        m_bounds.ub = iScaling.inverse() * m_bounds.ub;
+        m_bounds.isScaled = true;
+    }
+}
+
+void MpcProblem::unscaleSol(Vector & solution) {
+    if (solution.size() != m_Nu*m_Nt+m_Ns)
+        return;
+    
+    // Compute the scaling
+    DiagonalMatrix scaling;
+    Vector scalingDiag;
+    scaling.resize(m_Nu*m_Nt+m_Ns);
+    scalingDiag.resize(m_Nu*m_Nt+m_Ns);
+    for (unsigned int i = 0; i < m_Nt; i++) {
+        scalingDiag.segment(i*m_Nu, m_Nu) = m_scaling.input;
+    }
+    scalingDiag.segment(m_Nu*m_Nt, m_Ns) = m_scaling.slack;
+    scaling = scalingDiag.asDiagonal();
+    
+    // Unscale the solution
+    solution = scaling * solution;
+}
+
+
 QpProblem MpcProblem::toQp() {
     /*
      * Compute batch matrices of the cost function
@@ -143,7 +198,7 @@ QpProblem MpcProblem::toQp() {
     Sx.block(0, 0, m_Nx, m_Nx).setIdentity();
     for (unsigned int i = 1; i < m_Np; i++) {
         Sx.block(m_Nx*i, 0, m_Nx, m_Nx) = 
-        m_plant.A * Sx.block(m_Nx*(i-1), 0, m_Nx, m_Nx);
+            m_plant.A * Sx.block(m_Nx*(i-1), 0, m_Nx, m_Nx);
     }
     
     Su.setZero();
