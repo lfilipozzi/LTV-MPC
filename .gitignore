@@ -5,6 +5,7 @@
 /sfunc/
 !sfunc/ltvmpc_sfunc.cpp
 !sfunc/makeSFunction.m
+!sfunc/testLtvMpc.slx
 
 # Build and lib directory
 build/
