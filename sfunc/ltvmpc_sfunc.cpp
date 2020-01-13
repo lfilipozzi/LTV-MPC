@@ -43,8 +43,9 @@
 #define PARAM_NS_IDX            5
 #define PARAM_SLACKIDX_IDX      6
 #define PARAM_SLACKWEIGHT_IDX   7
-#define PARAM_TS_IDX            8
-#define NUM_PARAMS              9
+#define PARAM_INPUTSCALING_IDX  8
+#define PARAM_TS_IDX            9
+#define NUM_PARAMS              10
 
 // TODO set macro with param name for easier debugging
 
@@ -211,6 +212,17 @@ static void mdlCheckParameters(SimStruct *S)
         if (!IS_PARAM_CELLARRAY(pVal)) {
             invalidParam = true;
             paramIndex = PARAM_SLACKWEIGHT_IDX;
+            goto EXIT_TYPE_POINT;
+        }
+    }
+    
+    // Scaling used to normalize the inputs
+    // TODO check parameter
+    {
+        const mxArray *pVal = ssGetSFcnParam(S, PARAM_INPUTSCALING_IDX);
+        if (!IS_PARAM_DOUBLE(pVal)) {
+            invalidParam = true;
+            paramIndex = PARAM_INPUTSCALING_IDX;
             goto EXIT_TYPE_POINT;
         }
     }
@@ -515,8 +527,7 @@ static void mdlStart(SimStruct *S)
     // Get parameters (cell array)
     const mxArray * pSlackIdxCellArray    = ssGetSFcnParam(S, PARAM_SLACKIDX_IDX);
     const mxArray * pSlackWeightCellArray = ssGetSFcnParam(S, PARAM_SLACKWEIGHT_IDX);
-    for (int slackIdx = 0; slackIdx < Ns; slackIdx++)
-    {
+    for (int slackIdx = 0; slackIdx < Ns; slackIdx++) {
         std::vector<unsigned int> constraintsIdx;
         double weight;
         
@@ -550,6 +561,13 @@ static void mdlStart(SimStruct *S)
             ssSetErrorStatus(S, msg);
             return;
         }
+    }
+    
+    // Set input scaling factors
+    double * pInputScaling = mxGetPr(ssGetSFcnParam(S, PARAM_INPUTSCALING_IDX));
+    for (int idx = 0; idx < Nu; idx++) {
+        double factor = *(pInputScaling + idx);
+        controller->setInputScaleFactor(idx, factor);
     }
 }
 #endif // MDL_START
