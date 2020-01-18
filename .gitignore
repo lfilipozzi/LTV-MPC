@@ -7,9 +7,8 @@
 !sfunc/makeSFunction.m
 !sfunc/testLtvMpc.slx
 
-# Build and lib directory
+# Build directory
 build/
-lib/
 
 # Doxygen
 doc/
